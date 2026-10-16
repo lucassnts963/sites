@@ -1,0 +1,1535 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Plataforma de Estudos: A Graça Transformadora</title>
+  <style>
+    :root {
+      --primary: #d49a3d;
+      --primary-hover: #b87d24;
+      --primary-light: #ffd885;
+      --bg: #090d14;
+      --sidebar-bg: #101622;
+      --card-bg: #151d2b;
+      --card-border: #222e42;
+      --text: #f1f5f9;
+      --text-muted: #8b9bb4;
+      --link-color: #f1c40f;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --player-height: 480px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* =========================================================
+       LAYOUT DESKTOP
+       ========================================================= */
+    aside {
+      width: 400px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--card-border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      height: 100vh;
+      z-index: 20;
+    }
+
+    .aside-header {
+      padding: 1.2rem;
+      border-bottom: 1px solid var(--card-border);
+      background: rgba(0, 0, 0, 0.25);
+    }
+    .aside-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .aside-subtitle {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+    .progress-bar-container {
+      margin-top: 0.7rem;
+      background: #080c12;
+      border-radius: 999px;
+      height: 6px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      background: var(--primary);
+      height: 100%;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .stats-info {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+    }
+
+    .days-accordion {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.6rem;
+    }
+    .day-group {
+      margin-bottom: 0.5rem;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      overflow: hidden;
+    }
+    .day-header {
+      padding: 0.75rem 0.9rem;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #151e2c;
+      transition: background 0.2s;
+    }
+    .day-header:hover { background: rgba(212, 154, 61, 0.12); }
+    .day-header.active-day {
+      border-left: 4px solid var(--primary);
+      background: rgba(212, 154, 61, 0.16);
+    }
+    .day-title-text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary-light);
+    }
+    .day-sub-text {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .day-badge {
+      font-size: 0.68rem;
+      background: var(--card-border);
+      color: var(--text-muted);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+
+    .lesson-sublist {
+      list-style: none;
+      padding: 0.35rem;
+      background: #0c111a;
+      display: none;
+    }
+    .day-group.open .lesson-sublist { display: block; }
+    .lesson-item {
+      padding: 0.6rem 0.75rem;
+      border-radius: 6px;
+      margin-bottom: 0.25rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+    }
+    .lesson-item:hover {
+      background: rgba(212, 154, 61, 0.08);
+      border-color: rgba(212, 154, 61, 0.3);
+    }
+    .lesson-item.active {
+      background: rgba(212, 154, 61, 0.2);
+      border-color: var(--primary);
+    }
+    .lesson-badge {
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 5px;
+      border-radius: 4px;
+      background: #182232;
+      color: var(--text-muted);
+      min-width: 26px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .lesson-item.active .lesson-badge {
+      background: var(--primary);
+      color: #000;
+    }
+    .lesson-item-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      line-height: 1.3;
+    }
+    .lesson-item.active .lesson-item-title { color: #ffd885; }
+
+    /* Área Principal (Desktop) */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow-y: auto;
+      background: var(--bg);
+      position: relative;
+    }
+
+    /* Player Wrapper com Altura Configurável */
+    .player-container {
+      width: 100%;
+      background: #000;
+      position: sticky;
+      top: 0;
+      z-index: 15;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      transition: height 0.3s ease;
+    }
+    .player-controls-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0c121c;
+      border-bottom: 1px solid var(--card-border);
+      padding: 0.4rem 1.2rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+    .player-size-btns {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .size-btn {
+      background: #172131;
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      padding: 0.25rem 0.55rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .size-btn:hover, .size-btn.active {
+      background: rgba(212, 154, 61, 0.2);
+      color: #ffd885;
+      border-color: var(--primary);
+    }
+
+    .video-viewport {
+      width: 100%;
+      height: var(--player-height);
+      position: relative;
+      background: #000;
+      transition: height 0.3s ease;
+    }
+    .video-viewport iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    /* Conteúdo das Lições */
+    .content-area {
+      padding: 1.5rem 2.2rem 4rem;
+      max-width: 1180px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .lesson-meta-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1.2rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+    .meta-info h1 {
+      font-size: 1.45rem;
+      color: #ffd885;
+      line-height: 1.3;
+    }
+    .meta-tag {
+      display: inline-block;
+      margin-bottom: 0.4rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--primary);
+      background: var(--tag-bg);
+      border: 1px solid rgba(212, 154, 61, 0.3);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .action-btns {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 0.5rem 0.85rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.2s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .btn:hover {
+      background: rgba(212, 154, 61, 0.15);
+      border-color: var(--primary);
+      color: #ffd885;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #000;
+      border-color: var(--primary);
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+      color: #000;
+    }
+    .btn-completed {
+      background: rgba(34, 197, 94, 0.18);
+      color: #22c55e;
+      border-color: #22c55e;
+    }
+
+    /* Grid com Colunas */
+    .study-grid {
+      display: grid;
+      grid-template-columns: 1.8fr 1.2fr;
+      gap: 1.5rem;
+    }
+    .study-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 1.4rem;
+      margin-bottom: 1.4rem;
+    }
+    .card-heading {
+      font-size: 1rem;
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 0.45rem;
+    }
+    .study-desc {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      line-height: 1.65;
+      margin-bottom: 1rem;
+    }
+    .highlight-quote {
+      background: rgba(0, 0, 0, 0.35);
+      border-left: 4px solid var(--primary);
+      padding: 0.9rem 1.1rem;
+      border-radius: 4px;
+      font-style: italic;
+      color: #f1f5f9;
+      margin: 1rem 0;
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+    .verse-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: rgba(241, 196, 15, 0.12);
+      border: 1px solid rgba(241, 196, 15, 0.35);
+      color: #f1c40f;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      margin: 0.2rem 0.2rem 0.2rem 0;
+      transition: all 0.2s;
+    }
+    .verse-pill:hover {
+      background: rgba(241, 196, 15, 0.25);
+      border-color: #f1c40f;
+      transform: translateY(-1px);
+    }
+    .verse-pill::after { content: " 📖"; font-size: 0.72rem; }
+    .questions-box {
+      list-style-type: decimal;
+      padding-left: 1.2rem;
+      color: #cbd5e1;
+      font-size: 0.86rem;
+      line-height: 1.65;
+    }
+    .questions-box li { margin-bottom: 0.45rem; }
+
+    /* Área de Anotações Pessoais */
+    .notes-textarea {
+      width: 100%;
+      height: 180px;
+      background: #0d131e;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 0.8rem;
+      color: #f1f5f9;
+      font-family: inherit;
+      font-size: 0.86rem;
+      line-height: 1.5;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .notes-textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(212, 154, 61, 0.3);
+    }
+    .notes-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.6rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* Drawer Bíblia Online */
+    .bible-drawer {
+      position: fixed;
+      top: 0; right: -650px;
+      width: 650px; max-width: 95vw; height: 100vh;
+      background: var(--sidebar-bg);
+      border-left: 2px solid var(--primary);
+      z-index: 100;
+      box-shadow: -10px 0 35px rgba(0,0,0,0.7);
+      display: flex; flex-direction: column;
+      transition: right 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    .bible-drawer.open { right: 0; }
+    .drawer-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 90;
+      display: none;
+    }
+    .drawer-overlay.active { display: block; }
+    .drawer-header {
+      padding: 0.9rem 1.1rem;
+      background: #182232;
+      border-bottom: 1px solid var(--card-border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .drawer-title {
+      font-size: 0.95rem;
+      color: #ffd885;
+      font-weight: 700;
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+    .drawer-close {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #ef4444;
+      padding: 0.25rem 0.65rem;
+      border-radius: 6px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .drawer-body { flex: 1; position: relative; }
+    .drawer-body iframe { width: 100%; height: 100%; border: none; }
+
+    /* =========================================================
+       INTERFACE MOBILE REINVENTADA (APP-LIKE)
+       ========================================================= */
+    .mobile-tab-bar {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* Barra de Navegação Inferior para Mobile */
+      .mobile-tab-bar {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; width: 100%;
+        background: #101622;
+        border-top: 1px solid var(--card-border);
+        z-index: 50;
+        height: 56px;
+      }
+      .tab-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        transition: color 0.2s;
+      }
+      .tab-btn span.icon { font-size: 1.1rem; margin-bottom: 2px; }
+      .tab-btn.active {
+        color: var(--primary);
+        font-weight: 700;
+        background: rgba(212, 154, 61, 0.08);
+      }
+
+      /* Sidebar vira uma tela/aba no Mobile */
+      aside {
+        width: 100%;
+        height: calc(100vh - 56px);
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        z-index: 40;
+      }
+      aside.mobile-active {
+        display: flex;
+      }
+
+      /* Área Principal no Mobile */
+      main {
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+        padding-bottom: 2rem;
+      }
+
+      /* Player Adaptado para 16:9 no Topo Mobile */
+      .player-container {
+        position: relative;
+        top: 0;
+      }
+      .player-controls-bar {
+        display: none; /* No mobile não precisa redimensionar altura livremente */
+      }
+      .video-viewport {
+        height: 0;
+        padding-bottom: 56.25%; /* Proporção 16:9 exata */
+      }
+
+      /* Conteúdo mais compacto e sem estourar margem */
+      .content-area {
+        padding: 1rem 0.9rem 4rem;
+      }
+      .lesson-meta-bar {
+        flex-direction: column;
+        gap: 0.8rem;
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+      }
+      .meta-info h1 {
+        font-size: 1.25rem;
+      }
+      .action-btns {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.4rem;
+      }
+      .action-btns .btn {
+        justify-content: center;
+        padding: 0.55rem 0.4rem;
+        font-size: 0.78rem;
+      }
+
+      .study-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+      .study-card {
+        padding: 1.1rem;
+        margin-bottom: 1rem;
+      }
+      .bible-drawer { width: 100vw; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Backdrop do Leitor Bíblico -->
+<div class="drawer-overlay" id="overlay" onclick="closeDrawer()"></div>
+
+<!-- Drawer Bíblico Interativo -->
+<div class="bible-drawer" id="bibleDrawer">
+  <div class="drawer-header">
+    <div class="drawer-title">
+      <span>📖 Bíblia Online (ACF)</span>
+      <span id="currentRef" style="color: var(--link-color); font-size: 0.82rem;"></span>
+    </div>
+    <div style="display:flex; gap:0.4rem; align-items:center;">
+      <a href="#" target="_blank" id="extBibleLink" class="btn" style="padding:0.25rem 0.5rem; font-size:0.72rem;">↗ Nova Aba</a>
+      <button class="drawer-close" onclick="closeDrawer()">✕ Fechar</button>
+    </div>
+  </div>
+  <div class="drawer-body">
+    <iframe id="bibleFrame" src="about:blank"></iframe>
+  </div>
+</div>
+
+<!-- Barra Lateral: Playlist & Plano de 7 Dias -->
+<aside id="sidebarAside">
+  <div class="aside-header">
+    <div class="aside-title">
+      <span>Plano de Estudos (7 Dias)</span>
+    </div>
+    <div class="aside-subtitle">Graça Transformadora &amp; Dependência</div>
+    <div class="progress-bar-container">
+      <div class="progress-bar-fill" id="progressFill"></div>
+    </div>
+    <div class="stats-info">
+      <span id="lessonsCounter">24 Conteúdos</span>
+      <span id="completedPercentage">0% Concluído</span>
+    </div>
+  </div>
+
+  <div class="days-accordion" id="daysContainer">
+    <!-- Gerado dinamicamente -->
+  </div>
+</aside>
+
+<!-- Área Principal: Player e Conteúdo da Lição -->
+<main id="mainContent">
+  <!-- Player Container com Redimensionamento de Altura -->
+  <div class="player-container">
+    <div class="player-controls-bar">
+      <div><span>▶ Player de Estudo</span> <span id="playerCurrentLesson" style="color:#ffd885; margin-left:0.5rem;"></span></div>
+      <div class="player-size-btns">
+        <span>Altura:</span>
+        <button class="size-btn" onclick="setPlayerHeight('360px', this)">Compacto (360p)</button>
+        <button class="size-btn active" onclick="setPlayerHeight('480px', this)">Médio (480p)</button>
+        <button class="size-btn" onclick="setPlayerHeight('640px', this)">Expandido (640p)</button>
+      </div>
+    </div>
+    <div class="video-viewport" id="videoViewport">
+      <iframe id="mainPlayer" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <div class="content-area">
+    <div class="lesson-meta-bar">
+      <div class="meta-info">
+        <span class="meta-tag" id="lessonDayTag">Dia do Plano</span>
+        <h1 id="lessonTitle">Título da Aula</h1>
+        <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.3rem;" id="lessonSpeaker">Ministração</div>
+      </div>
+      <div class="action-btns">
+        <button class="btn" onclick="prevLesson()">◀ Anterior</button>
+        <button class="btn" onclick="nextLesson()">Próxima ▶</button>
+        <a id="ytDirectLink" href="#" target="_blank" class="btn" style="border-color:#ef4444; color:#ef4444;" title="Abrir no YouTube">▶ YouTube</a>
+        <button class="btn btn-primary" id="btnComplete" onclick="toggleCompleted()">✓ Concluir</button>
+      </div>
+    </div>
+
+    <div class="study-grid">
+      <!-- Coluna 1: Conteúdo Teológico e Bíblia -->
+      <div>
+        <div class="study-card">
+          <div class="card-heading">🎯 Síntese Teológica &amp; Conteúdo da Aula</div>
+          <p class="study-desc" id="lessonSummary">Resumo da lição.</p>
+          <div class="highlight-quote" id="lessonQuote">Tese central da aula.</div>
+        </div>
+
+        <div class="study-card">
+          <div class="card-heading">📖 Textos Bíblicos do Dia (Clique para Ler)</div>
+          <p style="font-size:0.82rem; color:var(--text-muted); margin-bottom:0.7rem;">
+            Abra cada texto diretamente no leitor da Bíblia Online sem sair da tela:
+          </p>
+          <div id="lessonVerses"></div>
+        </div>
+
+        <div class="study-card">
+          <div class="card-heading">❓ Perguntas para Fixação &amp; Reflexão</div>
+          <ol class="questions-box" id="dayQuestions"></ol>
+        </div>
+      </div>
+
+      <!-- Coluna 2: Anotações Pessoais & Aplicação Prática -->
+      <div>
+        <!-- CAMPO DE ANOTAÇÕES PESSOAIS COM SALVAMENTO AUTOMÁTICO -->
+        <div class="study-card">
+          <div class="card-heading">📝 Minhas Anotações &amp; Esboço</div>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.5rem;">
+            Suas anotações desta aula são salvas automaticamente no seu navegador:
+          </p>
+          <textarea class="notes-textarea" id="lessonNotes" placeholder="Escreva aqui suas reflexões, insights teológicos, pontos para pregação ou notas do sermão..." oninput="saveLessonNotes()"></textarea>
+          <div class="notes-footer" style="flex-wrap:wrap; gap:0.4rem;">
+            <span id="saveStatus">💾 Salvo localmente</span>
+            <div style="display:flex; gap:0.3rem;">
+              <button class="btn" style="padding:0.25rem 0.5rem; font-size:0.72rem;" onclick="backupJSON()" title="Baixar arquivo de progresso e notas">💾 Backup Progresso</button>
+              <button class="btn" style="padding:0.25rem 0.5rem; font-size:0.72rem;" onclick="document.getElementById('importFile').click()" title="Restaurar notas e progresso">📂 Restaurar</button>
+              <button class="btn" style="padding:0.25rem 0.5rem; font-size:0.72rem;" onclick="exportNotes()" title="Baixar texto formatado">📄 Baixar TXT</button>
+              <input type="file" id="importFile" style="display:none;" accept=".json" onchange="restoreJSON(event)">
+            </div>
+          </div>
+        </div>
+
+        <div class="study-card">
+          <div class="card-heading">🧭 Mapeamento no Plano de 7 Dias</div>
+          <p style="font-size:0.86rem; color:#ffd885; line-height:1.5; font-weight:600;" id="dayObjectiveTitle"></p>
+          <p style="font-size:0.82rem; color:var(--text-muted); line-height:1.55; margin-top:0.35rem;" id="dayObjectiveDesc"></p>
+        </div>
+
+        <div class="study-card">
+          <div class="card-heading">⚡ Ação Prática &amp; Devocional</div>
+          <p style="font-size:0.84rem; color:#cbd5e1; line-height:1.6;" id="dayPracticalAction"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Barra Inferior de Navegação Mobile (Estilo App) -->
+<nav class="mobile-tab-bar">
+  <button class="tab-btn active" id="tabVideo" onclick="switchMobileTab('video')">
+    <span class="icon">📺</span>
+    <span>Aula</span>
+  </button>
+  <button class="tab-btn" id="tabMenu" onclick="switchMobileTab('menu')">
+    <span class="icon">📑</span>
+    <span>Aulas (7 Dias)</span>
+  </button>
+  <button class="tab-btn" id="tabNotes" onclick="switchMobileTab('notes')">
+    <span class="icon">✏️</span>
+    <span>Anotações</span>
+  </button>
+</nav>
+
+<script>
+  // Plano de Estudos de 7 Dias com as 24 Aulas e Ministrações
+  const studyPlan = [
+    {
+      day: 1,
+      title: "Dia 1: O Dilema Teológico e a Mudança de Lei",
+      sub: "João 8, a Impecabilidade de Cristo e a Nova Aliança (Hb 7:12)",
+      objective: "Compreender por que a graça não aboliu mandamentos, mas mudou a aliança e a dispensação do sacerdócio.",
+      action: "Escreva em um parágrafo a diferença entre o encerramento da vigência da Lei Mosaica e a permanência da autoridade moral da Lei de Cristo.",
+      questions: [
+        "Se Jesus não pecou e o pecado é a transgressão da lei (1Jo 3:4), como Ele não apedrejou a adúltera sem violar a Lei Mosaica?",
+        "Qual a implicação teológica da declaração de Paulo em 1Co 9:21 sobre estar 'debaixo da lei de Cristo'?",
+        "Como a substituição do sacerdócio levítico pelo sacerdócio eterno de Melquisedeque invalida o antinomianismo?"
+      ],
+      lessons: [
+        {
+          id: "EkiQU2txyBw",
+          code: "Conf. 1",
+          title: "Graça Transformadora - Ministração Inaugural",
+          speaker: "Luciano Subirá (Conferência Nacional)",
+          summary: "Exposição do nó teológico de João 8: Jesus não pecou, mas não apedrejou a mulher adúltera. A resolução bíblica é a Mudança de Lei (Hb 7:12), a Remoção da Condenação e a Capacitação para a Obediência.",
+          quote: "'A graça não veio nos libertar da lei; veio nos libertar do pecado. Ela não veio baixar o padrão, veio elevar a capacidade do homem.'",
+          verses: [
+            { path: "jo/8", label: "João 8:2-11" },
+            { path: "hb/7", label: "Hebreus 7:11-12" },
+            { path: "1jo/3", label: "1 João 3:4" },
+            { path: "1co/9", label: "1 Coríntios 9:21" },
+            { path: "rm/10", label: "Romanos 10:4" }
+          ]
+        },
+        {
+          id: "AM2lSuh_IhI",
+          code: "Aula 01",
+          title: "Introdução ao Curso Graça Transformadora",
+          speaker: "Luciano Subirá",
+          summary: "A importância da macrovisão bíblica para não cair em heresias de 'uma página só'. Apresentação de Colossenses 1:6 sobre ouvir e entender a graça na verdade.",
+          quote: "'A Bíblia explica a própria Bíblia. A verdade plena está na soma de toda a Palavra de Deus.'",
+          verses: [
+            { path: "cl/1", label: "Colossenses 1:3-7" },
+            { path: "sl/119", label: "Salmo 119:160" }
+          ]
+        },
+        {
+          id: "jXNRjzmVBH0",
+          code: "Aula 02",
+          title: "O Entendimento Correto da Graça",
+          speaker: "Luciano Subirá",
+          summary: "Definição de charis (favor imerecido e força). Alerta de Judas 1:3-4 contra os que transformam a graça em libertinagem e desmistificação do legalismo.",
+          quote: "'Graça sem compromisso não representa a realidade bíblica.' (Dr. Russell Shedd)",
+          verses: [
+            { path: "ef/2", label: "Efésios 2:8-9" },
+            { path: "jd/1", label: "Judas 1:3-4" },
+            { path: "gl/1", label: "Gálatas 1:6-9" }
+          ]
+        },
+        {
+          id: "paLECifyXnc",
+          code: "Aula 07",
+          title: "Mudança da Lei (Hebreus 7:12)",
+          speaker: "Luciano Subirá",
+          summary: "Estudo pormenorizado de Hebreus 7:11-12. A cessação da lei cerimonial levítica versus a continuidade e elevação dos mandamentos morais na Lei de Cristo.",
+          quote: "'A Bíblia não fala em aniquilação da lei, mas em mudança de lei. Uma nova ordem entrou em vigor.'",
+          verses: [
+            { path: "hb/7", label: "Hebreus 7:11-19" },
+            { path: "1co/9", label: "1 Coríntios 9:21" },
+            { path: "jo/13", label: "João 13:34" }
+          ]
+        }
+      ]
+    },
+    {
+      day: 2,
+      title: "Dia 2: A Imutabilidade de Deus e o Período Antes da Lei",
+      sub: "De Adão a Moisés, o Fim das Sombras e a Fé no AT",
+      objective: "Desconstruir a falácia de que Deus mudou de caráter entre os testamentos e entender a função pedagógica da Lei.",
+      action: "Medite na convergência bíblica de João 5:39 e anote três figuras proféticas do Antigo Testamento que apontavam diretamente para Cristo.",
+      questions: [
+        "Por que as folhas de figueira em Gênesis 3 representam a falência do legalismo humano?",
+        "Qual o significado da Lei ter servido de 'aio' ou guardião tutor até que viesse a fé (Gálatas 3:24)?",
+        "Como os santos do Antigo Testamento alcançavam salvação antes da manifestação histórica de Cristo?"
+      ],
+      lessons: [
+        {
+          id: "7dTKY0Ljqq8",
+          code: "Aula 03",
+          title: "Antes da Lei (De Adão a Moisés)",
+          speaker: "Luciano Subirá",
+          summary: "O propósito original da criação, a deformação do molde adâmico pelo pecado e a promessa do Protoevangelho em Gênesis 3:15.",
+          quote: "'O pecado original corrompeu a raiz. A redenção é o plano meticuloso de Deus para restaurar o homem.'",
+          verses: [
+            { path: "rm/5", label: "Romanos 5:12-14" },
+            { path: "gn/3", label: "Gênesis 3:1-21" },
+            { path: "ef/1", label: "Efésios 1:4" }
+          ]
+        },
+        {
+          id: "ZLofKEnUo4s",
+          code: "Aula 04",
+          title: "Prazo e Propósito da Lei",
+          speaker: "Luciano Subirá",
+          summary: "O caráter temporário da Lei Mosaica: adicionada por causa das transgressões até que viesse o Descendente prometido (Gl 3:19).",
+          quote: "'A lei era como um raio-X: dava o diagnóstico da enfermidade, mas a cura pertencia exclusivamente a Cristo.'",
+          verses: [
+            { path: "gl/3", label: "Gálatas 3:19-25" },
+            { path: "hb/8", label: "Hebreus 8:8-13" },
+            { path: "rm/7", label: "Romanos 7:7-11" }
+          ]
+        },
+        {
+          id: "uF8npTZ6BNo",
+          code: "Aula 05",
+          title: "A Salvação no Antigo Testamento",
+          speaker: "Luciano Subirá",
+          summary: "Como a fé operava antes da cruz? As Escrituras veterotestamentárias tornavam os homens sábios para a salvação pela fé em Cristo (2Tm 3:15).",
+          quote: "'Os justos do passado criam naquilo que haveria de vir; nós cremos naquilo que já se consumou.'",
+          verses: [
+            { path: "hb/11", label: "Hebreus 11:1-40" },
+            { path: "2tm/3", label: "2 Timóteo 3:14-15" },
+            { path: "lc/16", label: "Lucas 16:27-31" }
+          ]
+        }
+      ]
+    },
+    {
+      day: 3,
+      title: "Dia 3: As Sombras Proféticas e a Justificação pela Fé",
+      sub: "Tipologia Sacrificial, Imutabilidade e a Paz com Deus",
+      objective: "Compreender como os sacrifícios e ritos apontavam tipologicamente para a cruz e fixar os fundamentos da justificação pela fé.",
+      action: "Leia Romanos 5:1-2 em voz alta e agradeça a Deus por estar revestido da justiça imputada de Cristo, livre de condenação.",
+      questions: [
+        "Por que a serpente de bronze em Números 21 é uma tipologia perfeita do julgamento do pecado na cruz (João 3:14)?",
+        "Por que a imutabilidade de Deus (Malaquias 3:6) desmente a ideia de que Deus era 'mau' no AT e ficou 'bom' no NT?",
+        "Qual é a diferença fundamental entre receber o salário por obras versus a graça concedida pela fé?"
+      ],
+      lessons: [
+        {
+          id: "0nOJ4y4iWTQ",
+          code: "Aula 06",
+          title: "O Caráter Profético da Lei",
+          speaker: "Luciano Subirá",
+          summary: "Hebreus 10:1 e a sombra dos bens vindouros. Como Cristo cumpriu cada detalhe profético dos sacrifícios, tornando os ritos desnecessários.",
+          quote: "'Jesus não aboliu a lei com desprezo; Ele a cumpriu profeticamente até a última gota.'",
+          verses: [
+            { path: "hb/10", label: "Hebreus 10:1-14" },
+            { path: "jo/3", label: "João 3:14-16" },
+            { path: "mt/5", label: "Mateus 5:17-18" }
+          ]
+        },
+        {
+          id: "gPLKVDjJfbc",
+          code: "Aula 08",
+          title: "A Imutabilidade de Deus e a Graça",
+          speaker: "Luciano Subirá",
+          summary: "Deus não muda em Seu caráter, santidade e justiça. A revelação é progressiva, mas a essência do Senhor permanece imutável eternamente.",
+          quote: "'Deus não se converteu no meio do caminho. Nele não há variação nem sombra de mudança (Tg 1:17).'",
+          verses: [
+            { path: "ml/3", label: "Malaquias 3:6" },
+            { path: "tg/1", label: "Tiago 1:17" }
+          ]
+        },
+        {
+          id: "0jp3AyKP8i4",
+          code: "Aula 09",
+          title: "A Justificação pela Fé",
+          speaker: "Luciano Subirá",
+          summary: "Romanos 5:1-2 e Romanos 4: Abraão creu e isso lhe foi imputado por justiça. A absolvição graciosa que remove o peso da culpa e da vergonha.",
+          quote: "'A justificação apaga o nosso registro de condenação e nos veste com a própria justiça do Filho de Deus.'",
+          verses: [
+            { path: "rm/5", label: "Romanos 5:1-2" },
+            { path: "rm/4", label: "Romanos 4:1-5" }
+          ]
+        }
+      ]
+    },
+    {
+      day: 4,
+      title: "Dia 4: Os Dois Adãos e o Processo da Salvação",
+      sub: "Porta, Caminho e Alvo (Passado, Presente e Futuro)",
+      objective: "Compreender as três etapas da salvação e o contraste entre a matriz terrena de Adão e a matriz celestial de Cristo.",
+      action: "Desenhe em seu caderno de notas o esquema didático das três fases: Porta (Regeneração), Caminho (Santificação) e Alvo (Glorificação).",
+      questions: [
+        "Por que 1 Coríntios 15:45-49 chama Cristo de 'Último Adão' e 'espírito vivificante'?",
+        "Como a Bíblia concilia a salvação nos tempos passado (At 15:11), presente (1Co 1:18) e futuro (Rm 5:10)?",
+        "Por que a graça não parou na experiência da porta, mas se manifesta com poder ao longo de todo o caminho?"
+      ],
+      lessons: [
+        {
+          id: "3w79AdtcCgU",
+          code: "Aula 10",
+          title: "Os Dois Adãos e a Nova Criatura",
+          speaker: "Luciano Subirá",
+          summary: "O primeiro Adão transmitiu um DNA de morte e pecado; o Último Adão transmite a semente e a natureza divina (1Jo 3:9; 2Pe 1:4).",
+          quote: "'Cristo não veio apenas perdoar a linhagem decaída; veio gerar uma nova criação parecida com Deus.'",
+          verses: [
+            { path: "1co/15", label: "1 Coríntios 15:45-49" },
+            { path: "2co/5", label: "2 Coríntios 5:17" },
+            { path: "2pe/1", label: "2 Pedro 1:4" }
+          ]
+        },
+        {
+          id: "yPfkKsMe7sU",
+          code: "Aula 11",
+          title: "Porta, Caminho e Alvo (As Três Etapas)",
+          speaker: "Luciano Subirá",
+          summary: "Soteriologia equilibrada: Fomos salvos da condenação (porta), somos salvos do poder do pecado (caminho) e seremos salvos da presença do pecado (alvo).",
+          quote: "'A conversão é a porta; o discipulado é o caminho dinâmico em direção ao prêmio da soberana vocação.'",
+          verses: [
+            { path: "mt/7", label: "Mateus 7:13-14" },
+            { path: "fp/3", label: "Filipenses 3:13-14" },
+            { path: "1co/15", label: "1 Coríntios 15:50-54" }
+          ]
+        },
+        {
+          id: "qh1nFVlSxHk",
+          code: "Aula 12",
+          title: "A Graça como Força Capacitadora",
+          speaker: "Luciano Subirá",
+          summary: "Romanos 8:3-4: o que a Lei não podia fazer por fraqueza da carne, Deus realizou em Cristo para que a exigência da Lei se cumprisse em nós.",
+          quote: "'Graça não é licença para fracassar; é o poder celestial operando na fraqueza humana para vencer.'",
+          verses: [
+            { path: "rm/8", label: "Romanos 8:3-4" },
+            { path: "2co/12", label: "2 Coríntios 12:9" },
+            { path: "1co/15", label: "1 Coríntios 15:10" }
+          ]
+        }
+      ]
+    },
+    {
+      day: 5,
+      title: "Dia 5: A Graça como Antídoto e a Quebra do Domínio do Pecado",
+      sub: "Romanos 6, Liberdade Responsável e Cooperação",
+      objective: "Compreender que o domínio do pecado é quebrado sob a graça (Rm 6:14) e que a fé coopera ativamente com os recursos divinos.",
+      action: "Escreva uma oração renunciando formalmente a qualquer desculpa carnal para permanecer em pecados habituais.",
+      questions: [
+        "O que significa 'o pecado não terá domínio sobre vós, pois não estais debaixo da lei, mas debaixo da graça' (Rm 6:14)?",
+        "Por que as ordens 'fortifica-te na graça' (2Tm 2:1) e 'não anuleis a graça' (Gl 2:21) provam que a graça é interativa?",
+        "Qual é a fronteira exata entre a liberdade em Cristo e a libertinagem condenada em Gálatas 5:13?"
+      ],
+      lessons: [
+        {
+          id: "rQrtenx_YMo",
+          code: "Aula 13",
+          title: "A Quebra do Domínio do Pecado",
+          speaker: "Luciano Subirá",
+          summary: "Morte para o pecado e ressurreição para a justiça. Debaixo da graça, o crente é liberto da escravidão e empoderado para andar em novidade de vida.",
+          quote: "'Na lei o pecado reinava com tirania; na graça, o cetro do pecado foi estraçalhado pelo poder de Cristo.'",
+          verses: [
+            { path: "rm/6", label: "Romanos 6:1-14" },
+            { path: "tt/2", label: "Tito 2:11-14" }
+          ]
+        },
+        {
+          id: "jr1MYSyxi34",
+          code: "Aula 14",
+          title: "A Graça é Irresistível ou Interativa?",
+          speaker: "Luciano Subirá",
+          summary: "A doutrina bíblica da responsabilidade humana: como o crente pode crescer na graça, resistir à graça ou se privar dela por amargura.",
+          quote: "'A salvação está nos depósitos da graça; o acesso a esses depósitos é a nossa fé correspondente.'",
+          verses: [
+            { path: "2tm/2", label: "2 Timóteo 2:1" },
+            { path: "hb/12", label: "Hebreus 12:15" },
+            { path: "gl/2", label: "Gálatas 2:21" }
+          ]
+        },
+        {
+          id: "yVc-rpL9X9A",
+          code: "Aula 15",
+          title: "Liberdade Responsável na Graça",
+          speaker: "Luciano Subirá",
+          summary: "Gálatas 5:13 e 1 Pedro 2:16: A liberdade cristã não é passaporte para os desejos da carne, mas a libertação do cativeiro do ego para servir a Deus e aos irmãos.",
+          quote: "'A verdadeira liberdade não é o direito de fazer o que bem entendemos, mas a capacidade santa de fazer o que agrada ao Pai.'",
+          verses: [
+            { path: "gl/5", label: "Gálatas 5:13" },
+            { path: "1pe/2", label: "1 Pedro 2:16" }
+          ]
+        }
+      ]
+    },
+    {
+      day: 6,
+      title: "Dia 6: Soberania, Quebra do Ego e Dependência em Cristo",
+      sub: "O Trono da Graça, Disciplinas Espirituais e Socorro Oportuno",
+      objective: "Aprender a buscar socorro antes da queda (tempo oportuno) e entender a soberania de Cristo como Fiador inabalável.",
+      action: "Identifique áreas em que você tem confiado na 'força do cavalo' (força própria) e estabeleça um horário fixo de oração e jejum devocional.",
+      questions: [
+        "O que significa achegar-se ao Trono da Graça para achar socorro em 'momento oportuno' (Hb 4:16)? Por que antes da queda?",
+        "Como a experiência de Elias no ribeiro de Querite e Jó no pó nos ensinam a viver desprovidos de orgulho ministerial?",
+        "Por que Hebreus 7:22 chama Jesus de 'Fiador de uma aliança superior'?"
+      ],
+      lessons: [
+        {
+          id: "bRqG9CvYLQM",
+          code: "Conf. 2",
+          title: "O Poder da Dependência em Cristo",
+          speaker: "Escola Bíblica",
+          summary: "Exposição em 2 Timóteo 2:1: a soberania de Deus que frustra os planos carnais, a tipologia das vestes no Éden e Cristo como o Fiador que quebrou a foice da morte.",
+          quote: "'Quando tudo desaparece e o chão some sob os pés, a graça entra em cena: Cristo estendeu os braços na cruz para perdoar a Sua Igreja.'",
+          verses: [
+            { path: "2tm/2", label: "2 Timóteo 2:1" },
+            { path: "hb/7", label: "Hebreus 7:22" },
+            { path: "gn/3", label: "Gênesis 3:8-21" },
+            { path: "pv/21", label: "Provérbios 21:30-31" },
+            { path: "1co/15", label: "1 Coríntios 15:55-57" }
+          ]
+        },
+        {
+          id: "bXg93cG7MtA",
+          code: "Aula 16",
+          title: "Santificação Posicional vs. Comportamental",
+          speaker: "Luciano Subirá",
+          summary: "A certidão de casamento e a fidelidade prática da aliança: o crente foi santificado em Cristo (posição), mas deve tornar-se santo em todo o seu procedimento (1Pe 1:15).",
+          quote: "'A santidade posicional é a nossa garantia legal; a comportamental é o testemunho diário da nossa transformação.'",
+          verses: [
+            { path: "1pe/1", label: "1 Pedro 1:14-16" },
+            { path: "ef/4", label: "Efésios 4:22-24" }
+          ]
+        },
+        {
+          id: "792H6Xz0Vc8",
+          code: "Aula 17",
+          title: "O Trono da Graça em Tempo Oportuno",
+          speaker: "Luciano Subirá",
+          summary: "Hebreus 4:14-16: Jesus foi tentado em tudo, mas sem pecado. Ele nos convida a correr ao Trono para receber livramento preventivo na hora da batalha.",
+          quote: "'Não fomos chamados para viver de queda em queda. Vá ao trono da graça antes de tropeçar e receba poder de vitória!'",
+          verses: [
+            { path: "hb/4", label: "Hebreus 4:14-16" },
+            { path: "mt/26", label: "Mateus 26:41" },
+            { path: "1co/10", label: "1 Coríntios 10:12-13" }
+          ]
+        },
+        {
+          id: "mHr99GvAt5k",
+          code: "Aula 18",
+          title: "Disciplinas Espirituais: Meios da Graça",
+          speaker: "Luciano Subirá",
+          summary: "Oração, Palavra e jejum não são obras meritórias para barganhar bênçãos, mas canais pelos quais nos apropriamos da graça capacitadora.",
+          quote: "'O jejum não muda a Deus; ele silencia a carne e faz o nosso espírito sintonizar com a voz do Espírito Santo.'",
+          verses: [
+            { path: "rm/8", label: "Romanos 8:13" },
+            { path: "1co/9", label: "1 Coríntios 9:27" },
+            { path: "mt/6", label: "Mateus 6:16-18" },
+            { path: "mt/9", label: "Mateus 9:15" }
+          ]
+        }
+      ]
+    },
+    {
+      day: 7,
+      title: "Dia 7: O Perigo dos Extremos e a Síntese Homilética",
+      sub: "Legalismo vs. Liberalismo, Mortificação da Carne e Glória a Deus",
+      objective: "Consolidar o equilíbrio bíblico definitivo entre o legalismo e a libertinagem e preparar a pregação do sermão.",
+      action: "Assista à Conferência ao Vivo (3h) como revisão geral de imersão e finalize seu esboço homilético para ministrar com convicção.",
+      questions: [
+        "Como a parábola do fariseu e do publicano (Lucas 18:9-14) expõe o pecado da justiça própria e do orgulho da obediência?",
+        "Qual o perigo mortal das regras humanas de Colossenses 2:20-23 que não têm valor no combate às paixões da carne?",
+        "Por que esperar inteiramente na graça (1Pe 1:13) garante que no final toda a glória pertença unicamente ao Senhor?"
+      ],
+      lessons: [
+        {
+          id: "S0X97Jdpy10",
+          code: "Aula 19",
+          title: "A Mortificação da Carne pelo Espírito",
+          speaker: "Luciano Subirá",
+          summary: "Romanos 8:5 e 8:13: A decisão deliberada de onde inclinar a mente. A carne não se regenera; ela deve ser subjugada pela nova natureza espiritual.",
+          quote: "'Aquela natureza que você mais alimentar com seu tempo, olhos e ouvidos será a que governará o seu coração.'",
+          verses: [
+            { path: "rm/8", label: "Romanos 8:5-13" },
+            { path: "cl/3", label: "Colossenses 3:1-5" }
+          ]
+        },
+        {
+          id: "QgNn9kp9r38",
+          code: "Aula 20",
+          title: "Obras, Galardão e Juízo na Nova Aliança",
+          speaker: "Luciano Subirá",
+          summary: "Efésios 2:10 e o Tribunal de Cristo: criados em Cristo para boas obras. A prestação de contas dos crentes no Reino da graça.",
+          quote: "'Não fomos salvos pelas obras, mas fomos inegavelmente salvos para uma vida abundante de boas obras.'",
+          verses: [
+            { path: "ef/2", label: "Efésios 2:10" },
+            { path: "2co/5", label: "2 Coríntios 5:10" },
+            { path: "1co/3", label: "1 Coríntios 3:11-15" }
+          ]
+        },
+        {
+          id: "fKdbZpv3d8E",
+          code: "Aula 21",
+          title: "O Perigo dos Extremos (Conclusão)",
+          speaker: "Luciano Subirá",
+          summary: "O fechamento do curso: navegar com firmeza sem desviar para o legalismo que anula a cruz, nem para o liberalismo que profana o sangue da aliança.",
+          quote: "'Esperem inteiramente na graça. Toda a glória pertence ao Senhor Jesus, autor e consumador da nossa fé.'",
+          verses: [
+            { path: "gl/5", label: "Gálatas 5:1-13" },
+            { path: "cl/2", label: "Colossenses 2:20-23" },
+            { path: "1pe/1", label: "1 Pedro 1:13" },
+            { path: "lc/18", label: "Lucas 18:9-14" }
+          ]
+        },
+        {
+          id: "zFjZnVqhd3o",
+          code: "Conf. 3",
+          title: "Graça Transformadora - Conferência Completa ao Vivo",
+          speaker: "Luciano Subirá (Edição 63 - Campina Grande)",
+          summary: "Síntese contínua de 3 horas ministrada ao vivo, reunindo a história de João 8, o quebra-cabeça teológico, o perigo dos mantras pós-modernos e o apelo fervoroso à santidade.",
+          quote: "'Que seja dito de nós como dos colossenses: o evangelho está frutificando desde o dia em que entenderam a graça de Deus na verdade!'",
+          verses: [
+            { path: "cl/1", label: "Colossenses 1:3-7" },
+            { path: "jo/8", label: "João 8:2-11" },
+            { path: "1co/10", label: "1 Coríntios 10:12-13" },
+            { path: "mt/26", label: "Mateus 26:41" },
+            { path: "rm/12", label: "Romanos 12:1-2" }
+          ]
+        }
+      ]
+    }
+  ];
+
+  let currentDayIndex = 0;
+  let currentLessonIndex = 0;
+  let rawCompleted = [];
+  try {
+    rawCompleted = JSON.parse(safeGet("completed_lessons") || "[]");
+  } catch(e) { rawCompleted = []; }
+  let completedLessons = new Set(rawCompleted);
+
+  function renderAccordion() {
+    const container = document.getElementById("daysContainer");
+    container.innerHTML = "";
+
+    studyPlan.forEach((dayData, dIdx) => {
+      const group = document.createElement("div");
+      group.className = `day-group ${dIdx === currentDayIndex ? 'open' : ''}`;
+      group.id = `dayGroup-${dIdx}`;
+
+      const totalInDay = dayData.lessons.length;
+      let completedInDay = 0;
+      dayData.lessons.forEach((_, lIdx) => {
+        if (completedLessons.has(`${dIdx}-${lIdx}`)) completedInDay++;
+      });
+
+      const header = document.createElement("div");
+      header.className = `day-header ${dIdx === currentDayIndex ? 'active-day' : ''}`;
+      header.onclick = () => toggleDay(dIdx);
+
+      header.innerHTML = `
+        <div>
+          <div class="day-title-text">${dayData.title}</div>
+          <div class="day-sub-text">${dayData.sub}</div>
+        </div>
+        <div class="day-badge">${completedInDay}/${totalInDay}</div>
+      `;
+      group.appendChild(header);
+
+      const sublist = document.createElement("ul");
+      sublist.className = "lesson-sublist";
+
+      dayData.lessons.forEach((lesson, lIdx) => {
+        const isCurrent = (dIdx === currentDayIndex && lIdx === currentLessonIndex);
+        const isDone = completedLessons.has(`${dIdx}-${lIdx}`);
+
+        const item = document.createElement("li");
+        item.className = `lesson-item ${isCurrent ? 'active' : ''}`;
+        item.onclick = (e) => {
+          e.stopPropagation();
+          selectLesson(dIdx, lIdx);
+          if (window.innerWidth <= 900) {
+            switchMobileTab('video');
+          }
+        };
+
+        item.innerHTML = `
+          <div class="lesson-badge">${isDone ? '✓' : lesson.code}</div>
+          <div class="lesson-item-title">${lesson.title}</div>
+        `;
+        sublist.appendChild(item);
+      });
+
+      group.appendChild(sublist);
+      container.appendChild(group);
+    });
+
+    updateProgress();
+  }
+
+  function toggleDay(dIdx) {
+    if (currentDayIndex === dIdx) {
+      const grp = document.getElementById(`dayGroup-${dIdx}`);
+      grp.classList.toggle("open");
+    } else {
+      selectLesson(dIdx, 0);
+    }
+  }
+
+  function selectLesson(dIdx, lIdx) {
+    currentDayIndex = dIdx;
+    currentLessonIndex = lIdx;
+
+    const dayData = studyPlan[currentDayIndex];
+    const lesson = dayData.lessons[currentLessonIndex];
+
+    // Atualiza Player (sem erro 153)
+    document.getElementById("mainPlayer").src = `https://www.youtube-nocookie.com/embed/${lesson.id}?autoplay=1&enablejsapi=1&rel=0`;
+    document.getElementById("ytDirectLink").href = `https://www.youtube.com/watch?v=${lesson.id}`;
+    document.getElementById("playerCurrentLesson").innerText = `(${lesson.code} - ${lesson.title})`;
+
+    // Atualiza Textos
+    document.getElementById("lessonDayTag").innerText = `${dayData.title} • ${lesson.code}`;
+    document.getElementById("lessonTitle").innerText = lesson.title;
+    document.getElementById("lessonSpeaker").innerText = `Ministrado por ${lesson.speaker}`;
+
+    // Atualiza Resumos e Notas
+    document.getElementById("lessonSummary").innerText = lesson.summary;
+    document.getElementById("lessonQuote").innerText = lesson.quote;
+
+    // Atualiza Informações do Plano do Dia
+    document.getElementById("dayObjectiveTitle").innerText = dayData.title;
+    document.getElementById("dayObjectiveDesc").innerText = dayData.objective;
+    document.getElementById("dayPracticalAction").innerText = dayData.action;
+
+    // Atualiza Perguntas
+    const qList = document.getElementById("dayQuestions");
+    qList.innerHTML = "";
+    dayData.questions.forEach(q => {
+      const li = document.createElement("li");
+      li.innerText = q;
+      qList.appendChild(li);
+    });
+
+    // Atualiza Versículos
+    const vContainer = document.getElementById("lessonVerses");
+    vContainer.innerHTML = "";
+    lesson.verses.forEach(v => {
+      const pill = document.createElement("span");
+      pill.className = "verse-pill";
+      pill.innerText = v.label;
+      pill.onclick = () => openBible(v.path, v.label);
+      vContainer.appendChild(pill);
+    });
+
+    // Carrega Anotações Salvas da Aula
+    loadLessonNotes();
+
+    // Atualiza Botão Concluir
+    const isDone = completedLessons.has(`${currentDayIndex}-${currentLessonIndex}`);
+    const btnComp = document.getElementById("btnComplete");
+    if (isDone) {
+      btnComp.className = "btn btn-completed";
+      btnComp.innerText = "✓ Concluída";
+    } else {
+      btnComp.className = "btn btn-primary";
+      btnComp.innerText = "✓ Concluir Aula";
+    }
+
+    renderAccordion();
+  }
+
+  function toggleCompleted() {
+    const key = `${currentDayIndex}-${currentLessonIndex}`;
+    if (completedLessons.has(key)) {
+      completedLessons.delete(key);
+    } else {
+      completedLessons.add(key);
+    }
+    safeSet("completed_lessons", JSON.stringify([...completedLessons]));
+    selectLesson(currentDayIndex, currentLessonIndex);
+  }
+
+  function updateProgress() {
+    let total = 0;
+    studyPlan.forEach(d => total += d.lessons.length);
+    const completed = completedLessons.size;
+    const pct = Math.round((completed / total) * 100);
+
+    document.getElementById("progressFill").style.width = `${pct}%`;
+    document.getElementById("completedPercentage").innerText = `${pct}% Concluído`;
+    document.getElementById("lessonsCounter").innerText = `${completed}/${total} Concluídos`;
+  }
+
+  function nextLesson() {
+    const currentDayLessons = studyPlan[currentDayIndex].lessons;
+    if (currentLessonIndex < currentDayLessons.length - 1) {
+      selectLesson(currentDayIndex, currentLessonIndex + 1);
+    } else if (currentDayIndex < studyPlan.length - 1) {
+      selectLesson(currentDayIndex + 1, 0);
+    }
+  }
+
+  function prevLesson() {
+    if (currentLessonIndex > 0) {
+      selectLesson(currentDayIndex, currentLessonIndex - 1);
+    } else if (currentDayIndex > 0) {
+      const prevDayIndex = currentDayIndex - 1;
+      const prevDayLastLesson = studyPlan[prevDayIndex].lessons.length - 1;
+      selectLesson(prevDayIndex, prevDayLastLesson);
+    }
+  }
+
+  // Controle de Altura do Player no Desktop
+  function setPlayerHeight(height, btn) {
+    document.documentElement.style.setProperty('--player-height', height);
+    document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+  }
+
+  // Gerenciamento Seguro de Storage (Compatível com Google Sites / iFrames)
+  const memoryStore = {};
+  let storageAvailable = true;
+
+  function checkStorage() {
+    try {
+      const testKey = "__test_storage__";
+      localStorage.setItem(testKey, "1");
+      localStorage.removeItem(testKey);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  storageAvailable = checkStorage();
+
+  function safeGet(key) {
+    if (storageAvailable) {
+      try { return localStorage.getItem(key); } catch(e){}
+    }
+    return memoryStore[key] || null;
+  }
+
+  function safeSet(key, value) {
+    memoryStore[key] = value;
+    if (storageAvailable) {
+      try { 
+        localStorage.setItem(key, value); 
+        return true;
+      } catch(e){}
+    }
+    return false;
+  }
+
+  function getNoteKey() {
+    return `notes_day_${currentDayIndex}_lesson_${currentLessonIndex}`;
+  }
+
+  function loadLessonNotes() {
+    const saved = safeGet(getNoteKey()) || "";
+    document.getElementById("lessonNotes").value = saved;
+    const statusEl = document.getElementById("saveStatus");
+    if (!storageAvailable) {
+      statusEl.innerHTML = "<span style='color:#f87171;'>⚠️ Modo Restrito Google Sites: use 'Exportar Backup' antes de sair</span>";
+    } else {
+      statusEl.innerText = saved ? "💾 Salvo no navegador" : "✏️ Nenhuma nota ainda";
+    }
+  }
+
+  function saveLessonNotes() {
+    const val = document.getElementById("lessonNotes").value;
+    const success = safeSet(getNoteKey(), val);
+    const statusEl = document.getElementById("saveStatus");
+    if (!storageAvailable) {
+      statusEl.innerHTML = "<span style='color:#f87171;'>⚠️ Salvo apenas nesta sessão. Clique em 'Backup' para não perder!</span>";
+    } else {
+      statusEl.innerText = "💾 Salvo automaticamente!";
+      setTimeout(() => {
+        statusEl.innerText = "💾 Salvo no navegador";
+      }, 1500);
+    }
+  }
+
+  function backupJSON() {
+    const data = {
+      completed: [...completedLessons],
+      notes: {}
+    };
+    studyPlan.forEach((d, dIdx) => {
+      d.lessons.forEach((l, lIdx) => {
+        const key = `notes_day_${dIdx}_lesson_${lIdx}`;
+        const val = safeGet(key);
+        if (val) data.notes[key] = val;
+      });
+    });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `backup_estudos_graca_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function restoreJSON(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      try {
+        const data = JSON.parse(evt.target.result);
+        if (data.completed) {
+          completedLessons = new Set(data.completed);
+          safeSet("completed_lessons", JSON.stringify(data.completed));
+        }
+        if (data.notes) {
+          Object.keys(data.notes).forEach(k => {
+            safeSet(k, data.notes[k]);
+          });
+        }
+        alert("Progresso e anotações restaurados com sucesso!");
+        selectLesson(currentDayIndex, currentLessonIndex);
+      } catch (err) {
+        alert("Erro ao ler o arquivo de backup.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function exportNotes() {
+    let fullText = "=== MINHAS ANOTAÇÕES DO ESTUDO DA GRAÇA TRANSFORMADORA ===\n\n";
+    studyPlan.forEach((d, dIdx) => {
+      fullText += `\n------------------------------------------------------------\n`;
+      fullText += `${d.title.toUpperCase()}\n`;
+      fullText += `------------------------------------------------------------\n`;
+      d.lessons.forEach((l, lIdx) => {
+        const note = localStorage.getItem(`notes_day_${dIdx}_lesson_${lIdx}`);
+        if (note && note.trim()) {
+          fullText += `\n[${l.code}] ${l.title}\n`;
+          fullText += `Notas:\n${note}\n`;
+        }
+      });
+    });
+
+    const blob = new Blob([fullText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Minhas_Anotacoes_Graca_Transformadora.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Navegação Mobile por Abas
+  function switchMobileTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const sidebar = document.getElementById("sidebarAside");
+    const main = document.getElementById("mainContent");
+
+    if (tab === 'menu') {
+      sidebar.classList.add("mobile-active");
+      document.getElementById("tabMenu").classList.add("active");
+    } else if (tab === 'notes') {
+      sidebar.classList.remove("mobile-active");
+      document.getElementById("tabNotes").classList.add("active");
+      // Rola a tela até o campo de anotações
+      document.getElementById("lessonNotes").scrollIntoView({ behavior: 'smooth' });
+      document.getElementById("lessonNotes").focus();
+    } else {
+      // 'video'
+      sidebar.classList.remove("mobile-active");
+      document.getElementById("tabVideo").classList.add("active");
+      main.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  // Drawer Bíblico
+  function openBible(path, label) {
+    const url = "https://www.bibliaonline.com.br/acf/" + path;
+    const frame = document.getElementById("bibleFrame");
+    const drawer = document.getElementById("bibleDrawer");
+    const overlay = document.getElementById("overlay");
+    const currentRef = document.getElementById("currentRef");
+    const extLink = document.getElementById("extBibleLink");
+
+    currentRef.innerText = label ? "— " + label : "";
+    extLink.href = url;
+    frame.src = url;
+
+    overlay.classList.add("active");
+    drawer.classList.add("open");
+  }
+
+  function closeDrawer() {
+    const drawer = document.getElementById("bibleDrawer");
+    const overlay = document.getElementById("overlay");
+    const frame = document.getElementById("bibleFrame");
+
+    drawer.classList.remove("open");
+    overlay.classList.remove("active");
+    setTimeout(() => {
+      frame.src = "about:blank";
+    }, 350);
+  }
+
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") closeDrawer();
+  });
+
+  window.onload = () => {
+    selectLesson(0, 0);
+  };
+</script>
+
+</body>
+</html>
