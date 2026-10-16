@@ -735,6 +735,42 @@
 </nav>
 
 <script>
+  /* ============================================================
+     SISTEMA DE PERSISTÊNCIA ROBUSTO (GITHUB PAGES / LOCALSTORAGE)
+     ============================================================ */
+  const memoryStore = {};
+  let storageAvailable = (function() {
+    try {
+      const k = "__storage_verify__";
+      window.localStorage.setItem(k, "ok");
+      window.localStorage.removeItem(k);
+      return true;
+    } catch(e) {
+      return false;
+    }
+  })();
+
+  function safeGet(key) {
+    if (storageAvailable) {
+      try {
+        const val = window.localStorage.getItem(key);
+        if (val !== null) return val;
+      } catch(e) {}
+    }
+    return memoryStore[key] || null;
+  }
+
+  function safeSet(key, value) {
+    memoryStore[key] = value;
+    if (storageAvailable) {
+      try {
+        window.localStorage.setItem(key, value);
+        return true;
+      } catch(e) {}
+    }
+    return false;
+  }
+
   // Plano de Estudos de 7 Dias com as 24 Aulas e Ministrações
   const studyPlan = [
     {
@@ -1286,6 +1322,9 @@
       btnComp.innerText = "✓ Concluir Aula";
     }
 
+        // Salvar última lição acessada
+    safeSet("last_visited_day", currentDayIndex.toString());
+    safeSet("last_visited_lesson", currentLessonIndex.toString());
     renderAccordion();
   }
 
@@ -1337,39 +1376,7 @@
     if (btn) btn.classList.add('active');
   }
 
-  // Gerenciamento Seguro de Storage (Compatível com Google Sites / iFrames)
-  const memoryStore = {};
-  let storageAvailable = true;
 
-  function checkStorage() {
-    try {
-      const testKey = "__test_storage__";
-      localStorage.setItem(testKey, "1");
-      localStorage.removeItem(testKey);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-  storageAvailable = checkStorage();
-
-  function safeGet(key) {
-    if (storageAvailable) {
-      try { return localStorage.getItem(key); } catch(e){}
-    }
-    return memoryStore[key] || null;
-  }
-
-  function safeSet(key, value) {
-    memoryStore[key] = value;
-    if (storageAvailable) {
-      try { 
-        localStorage.setItem(key, value); 
-        return true;
-      } catch(e){}
-    }
-    return false;
-  }
 
   function getNoteKey() {
     return `notes_day_${currentDayIndex}_lesson_${currentLessonIndex}`;
@@ -1526,8 +1533,12 @@
     if (e.key === "Escape") closeDrawer();
   });
 
-  window.onload = () => {
-    selectLesson(0, 0);
+    window.onload = () => {
+    const savedDay = parseInt(safeGet("last_visited_day") || "0", 10);
+    const savedLesson = parseInt(safeGet("last_visited_lesson") || "0", 10);
+    const d = (savedDay >= 0 && savedDay < studyPlan.length) ? savedDay : 0;
+    const l = (savedLesson >= 0 && savedLesson < studyPlan[d].lessons.length) ? savedLesson : 0;
+    selectLesson(d, l);
   };
 </script>
 
