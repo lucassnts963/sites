@@ -1,0 +1,15 @@
+{
+  "descricao": "Desenhos dos espelhos por tipo de trocador e variação. Nomenclatura: desenhos/<tipo>/<tipo>--<variacao>.svg (tudo minúsculo, sem acento, palavras com hífen). Tubos = círculos com data-tube.",
+  "status": [
+    { "value": "desobstruido", "label": "Desobstruído", "color": "#16876a" },
+    { "value": "obstruido", "label": "Obstruído", "color": "#d14343" },
+    { "value": "tamponado", "label": "Tamponado", "color": "#1b1d24" },
+    { "value": "furado", "label": "Furado", "color": "#ff9f1c" }
+  ],
+  "desenhos": [
+    { "id": "aquecedor-de-polpa--5-furos", "tipo": "Aquecedor de polpa", "variacao": "5 furos (36 feixes × 5 tubos)", "tubos": 180, "arquivo": "aquecedor-de-polpa/aquecedor-de-polpa--5-furos.svg" },
+    { "id": "aquecedor-de-polpa--6-furos", "tipo": "Aquecedor de polpa", "variacao": "6 furos (36 feixes × 6 tubos)", "tubos": 216, "arquivo": "aquecedor-de-polpa/aquecedor-de-polpa--6-furos.svg" },
+    { "id": "resfriamento-a-vacuo--6-colmeias", "tipo": "Resfriamento a vácuo", "variacao": "6 colmeias", "tubos": 894, "arquivo": "resfriamento-a-vacuo/resfriamento-a-vacuo--6-colmeias.svg" },
+    { "id": "trocador-horizontal-caustico--330-tubos", "tipo": "Trocador horizontal cáustico", "variacao": "330 tubos (malha triangular)", "tubos": 330, "arquivo": "trocador-horizontal-caustico/trocador-horizontal-caustico--330-tubos.svg" }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "fonte": "EXEMPLO com nomes fictícios. O efetivo real não fica neste repositório público: importe o arquivo efetivo.json pelo app (Config › Importar efetivo).",
+  "atualizado": "2026-10-27",
+  "contrato": "Trocador de Calor 4600014468",
+  "modalidades": { "ppu": "PPU (desobstrução)", "extra": "Equipe extra (HH)", "6x4": "Equipe fixa 6x4" },
+  "frentes": { "DESOBSTRUÇÃO": "ppu", "LAVAGEM ÁCIDA-6X4": "6x4", "DESCONTAMINAÇÃO": "extra", "ÁREA 31 - DEMANDA EXTRA": "extra" },
+  "colaboradores": [
+    { "nome": "ENCARREGADO PPU EXEMPLO", "funcao": "ENCARREGADO", "frente": "DESOBSTRUÇÃO", "turno": "ADM", "status": "ATIVO", "encarregado": "ENCARREGADO PPU EXEMPLO", "supervisor": "SUPERVISOR EXEMPLO" },
+    { "nome": "JATISTA UM", "funcao": "MECANICO JATISTA", "frente": "DESOBSTRUÇÃO", "turno": "ADM", "status": "ATIVO", "encarregado": "ENCARREGADO PPU EXEMPLO", "supervisor": "SUPERVISOR EXEMPLO" },
+    { "nome": "JATISTA DOIS", "funcao": "MECANICO JATISTA", "frente": "DESOBSTRUÇÃO", "turno": "ADM", "status": "ATIVO", "encarregado": "ENCARREGADO PPU EXEMPLO", "supervisor": "SUPERVISOR EXEMPLO" },
+    { "nome": "MOTORISTA OPERADOR UM", "funcao": "MOT. OPERADOR DE HIDROJATO", "frente": "DESOBSTRUÇÃO", "turno": "ADM", "status": "ATIVO", "encarregado": "ENCARREGADO PPU EXEMPLO", "supervisor": "SUPERVISOR EXEMPLO" },
+    { "nome": "ENCARREGADO EXTRA EXEMPLO", "funcao": "ENCARREGADO", "frente": "DESCONTAMINAÇÃO", "turno": "ADM", "status": "ATIVO", "encarregado": "ENCARREGADO EXTRA EXEMPLO", "supervisor": "SUPERVISOR EXEMPLO" },
+    { "nome": "MECANICO EXTRA UM", "funcao": "MECANICO MONTADOR", "frente": "DESCONTAMINAÇÃO", "turno": "ADM", "status": "ATIVO", "encarregado": "ENCARREGADO EXTRA EXEMPLO", "supervisor": "SUPERVISOR EXEMPLO" },
+    { "nome": "MECANICO EXTRA DOIS", "funcao": "MECANICO MONTADOR", "frente": "DESCONTAMINAÇÃO", "turno": "ADM", "status": "FÉRIAS", "encarregado": "ENCARREGADO EXTRA EXEMPLO", "supervisor": "SUPERVISOR EXEMPLO" },
+    { "nome": "ENCARREGADO TURMA EXEMPLO", "funcao": "ENCARREGADO", "frente": "LAVAGEM ÁCIDA-6X4", "turno": "TURMA 01", "status": "ATIVO", "encarregado": "ENCARREGADO TURMA EXEMPLO", "supervisor": "SUPERVISOR EXEMPLO" },
+    { "nome": "MECANICO TURMA UM", "funcao": "MECANICO MONTADOR", "frente": "LAVAGEM ÁCIDA-6X4", "turno": "TURMA 01", "status": "ATIVO", "encarregado": "ENCARREGADO TURMA EXEMPLO", "supervisor": "SUPERVISOR EXEMPLO" },
+    { "nome": "MECANICO TURMA DOIS", "funcao": "MECANICO MONTADOR", "frente": "LAVAGEM ÁCIDA-6X4", "turno": "TURMA 01", "status": "ATIVO", "encarregado": "ENCARREGADO TURMA EXEMPLO", "supervisor": "SUPERVISOR EXEMPLO" },
+    { "nome": "COLABORADOR OUTRA FRENTE", "funcao": "MECANICO MONTADOR", "frente": "DIGESTÃO - FIXA", "turno": "ADM", "status": "ATIVO", "encarregado": "OUTRO ENCARREGADO", "supervisor": "OUTRO SUPERVISOR" }
+  ]
+}

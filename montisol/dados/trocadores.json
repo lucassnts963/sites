@@ -1,0 +1,6 @@
+{
+  "descricao": "TAGs dos trocadores e o desenho (id do desenhos/catalogo.json) de cada um. Acrescente uma linha por TAG.",
+  "trocadores": [
+    { "tag": "HE 41A-01A", "tipo": "Resfriamento a vácuo", "area": "Precipitação 41", "desenho": "resfriamento-a-vacuo--6-colmeias" }
+  ]
+}
