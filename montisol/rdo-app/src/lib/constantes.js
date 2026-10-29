@@ -1,4 +1,4 @@
-export const VERSAO = '0.4.0';
+export const VERSAO = '0.5.0';
 
 export const ROTULO_ST = { presente: 'Presente', falta: 'Falta', ferias: 'Férias', afastado: 'Afastado' };
 export const MOD_TXT = { ppu: 'PPU (desobstrução)', extra: 'Equipe extra (HH)', '6x4': 'Equipe fixa 6x4' };
@@ -14,3 +14,5 @@ export const turnosDe = (mod) => TURNOS_POR[mod] || TURNOS_POR.ppu;
 // Dados de apoio ficam fora do app (montisol/dados e montisol/desenhos), relativos à página rdo/.
 export const DADOS = '../dados/';
 export const DESENHOS = '../desenhos/';
+// Logos e ícones da identidade visual (montisol/marca), compartilhados com a página inicial do Montisol.
+export const MARCA = '../marca/';

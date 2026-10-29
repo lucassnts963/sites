@@ -87,7 +87,7 @@ export function FormPresenca() {
       ) : (
         <section className="card"><h2>Observações</h2><Area rot="Observações (opcional)" k="obs" /></section>
       )}
-      <section className="card"><h2>📸 Fotos</h2><Fotos caminho="anexos" tag="" /></section>
+      <section className="card"><h2>Fotos</h2><Fotos caminho="anexos" tag="" /></section>
     </>
   );
 }

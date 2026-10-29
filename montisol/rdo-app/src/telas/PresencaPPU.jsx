@@ -2,6 +2,7 @@
    quem falta sai da equipe dos equipamentos (e volta ao ser marcado presente). */
 import { useState } from 'react';
 import { useApp } from '../estado.jsx';
+import { MARCA } from '../lib/constantes.js';
 import { AdicionarPessoa } from '../componentes/AdicionarPessoa.jsx';
 import { Sp } from '../componentes/campos.jsx';
 import { preencherEquipe } from '../lib/rascunho.js';
@@ -25,7 +26,7 @@ export function PresencaPPU({ pendencias }) {
       <datalist id="tagsDoDia">{tags.map((t) => <option key={t} value={t} />)}</datalist>
       <div className="linha topo-card">
         <button type="button" className="dobra" onClick={() => setAberto(!aberto)} aria-expanded={aberto}>
-          <span className="seta">{aberto ? '▾' : '▸'}</span><b>👥 Presença da equipe ({ps.length})</b>
+          <span className="seta">{aberto ? '▾' : '▸'}</span><img className="ic" src={MARCA + 'icones/supervisor-preto.png'} alt="" width="24" height="24" /><b>Presença da equipe ({ps.length})</b>
           {pendencias ? <span className="tag outra">{pendencias} a completar</span> : null}
         </button>
         <Sp />

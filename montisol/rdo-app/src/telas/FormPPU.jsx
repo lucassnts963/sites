@@ -4,7 +4,8 @@ import { useApp } from '../estado.jsx';
 import { AdicionarPessoa, TagOrigem } from '../componentes/AdicionarPessoa.jsx';
 import { Area, Campo, Numero, Seg, Sp } from '../componentes/campos.jsx';
 import { abrirArquivo } from '../lib/arquivos.js';
-import { DESENHOS } from '../lib/constantes.js';
+import { DESENHOS, MARCA } from '../lib/constantes.js';
+import { SERVICOS } from '../lib/contrato.js';
 import { contar, exportSvg, parseSheet } from '../lib/mapa.js';
 import { completarPelaTag, copiarApontamento, novoEq, paradaVazia } from '../lib/rascunho.js';
 import { editarManut, garantirManut, gravarMapa, importarPassagem, lerMapa, manutDe, montarPassagem, novaManutDaTag, turnosDaTag } from '../lib/passagem.js';
@@ -127,7 +128,7 @@ function Producao({ eq, i, c, folha }) {
   return (
     <>
       <div className="manut">
-        <div className="linha topo-card"><b>🔧 Manutenção {eq.tag ? 'da ' + eq.tag : ''}</b><Sp />
+        <div className="linha topo-card"><b className="titulo">Manutenção {eq.tag ? 'da ' + eq.tag : ''}</b><Sp />
           <small className="dim">{manut ? 'desde ' + dataBR(manut.inicio.slice(0, 10)) : eq.tag ? 'nova' : ''}</small></div>
         <div className="grid2">
           <div><label>Total de tubos do trocador</label>
@@ -256,6 +257,7 @@ function Equipamento({ eq, i, pendencias }) {
           </div>
         </div>
         {troc && (troc.tipo || troc.area) && <p className="dim pequeno calc">{[troc.tipo, troc.area].filter(Boolean).join(' · ')}</p>}
+        <label>Serviço</label><Seg k={`${k}.servico`} opcoes={SERVICOS} />
         <div className="linha">
           <button type="button" className="btn" onClick={mapear} disabled={!(eq.tag && eq.desenho)}>🗺️ Mapear espelho</button>
           {c ? <span className="kpis"><span>🟢 {c.desobstruido}</span><span>🔴 {c.obstruido}</span><span>⚫ {c.tamponado}</span><span>🟠 {c.furado}</span></span>
@@ -264,7 +266,7 @@ function Equipamento({ eq, i, pendencias }) {
         <label>AQS do serviço</label><Seg k={`${k}.aqs`} opcoes={[['sim', 'Sim'], ['nao', 'Não']]} />
         <Campo rot="Nº ou referência da AQS" k={`${k}.aqsRef`} />
 
-        <h3>👷 Equipe que trabalhou no equipamento ({eq.equipe.length})</h3>
+        <h3><img className="ic" src={MARCA + 'icones/equipe-operarios-preto.png'} alt="" />Equipe que trabalhou no equipamento ({eq.equipe.length})</h3>
         <div className="chips">
           {eq.equipe.length ? eq.equipe.map((p, j) => (
             <span className="chip" key={p.nome + j}>{p.nome}<TagOrigem p={p} />
@@ -273,26 +275,26 @@ function Equipamento({ eq, i, pendencias }) {
         </div>
         <AdicionarPessoa caminho={`${k}.equipe`} />
 
-        <h3>⏱️ 1. Horários da atividade</h3>
+        <h3><span className="num">1</span>Horários da atividade</h3>
         <div className="grid2"><Campo rot="DDS – início" k={`${k}.hor.ddsIni`} tipo="time" /><Campo rot="DDS – término" k={`${k}.hor.ddsFim`} tipo="time" /></div>
         <Tempo rot="Tempo do DDS" ini={eq.hor.ddsIni} fim={eq.hor.ddsFim} />
         <div className="grid4"><Campo rot="Liberação" k={`${k}.hor.lib`} tipo="time" /><Campo rot="Início desobstrução" k={`${k}.hor.ini`} tipo="time" /><Campo rot="Término" k={`${k}.hor.fim`} tipo="time" /></div>
 
-        <h3>📋 2. Controle de produção</h3>
+        <h3><span className="num">2</span>Controle de produção<img className="ic" src={MARCA + 'icones/valvula-tubulacao-preto.png'} alt="" /></h3>
         <Producao eq={eq} i={i} c={c} folha={() => folhaDe(eq, CAT)} />
 
-        <h3>🚧 3. Controle de paradas</h3>
+        <h3><span className="num">3</span>Controle de paradas</h3>
         {eq.paradas.map((p, j) => <Parada key={j} i={i} j={j} p={p} />)}
         <div className="linha"><button type="button" className="btn min" onClick={() => mudar((d) => { d.equipamentos[i].paradas.push(paradaVazia()); })}>➕ Parada</button></div>
         <div className="resumo">📈 Total parado: <b>{r.total} min</b> · Hydro: <b>{r.hydro} min</b> · Montisol: <b>{r.montisol} min</b>{r.semHorario ? ` · ${r.semHorario} sem horário` : ''}</div>
 
-        <h3>🔧 4. Atividades / observações</h3>
+        <h3><span className="num">4</span>Atividades / observações</h3>
         <Area rot="Serviço executado" k={`${k}.ativ.servico`} />
         <Area rot="Situação atual" k={`${k}.ativ.situacao`} />
         <Area rot="Pendências" k={`${k}.ativ.pend`} />
         <Campo rot="Próxima etapa / TAG" k={`${k}.ativ.prox`} />
 
-        <h3>📸 5. Registro fotográfico</h3>
+        <h3><span className="num">5</span>Registro fotográfico</h3>
         <Fotos caminho={`${k}.anexos`} tag={eq.tag} />
         <div className="grid2"><Campo rot="Antes (texto)" k={`${k}.fotos.antes`} placeholder={(eq.anexos || []).length ? 'conta as fotos anexadas' : 'ex.: 4 fotos no grupo'} />
           <Campo rot="Depois (texto)" k={`${k}.fotos.depois`} placeholder={(eq.anexos || []).length ? 'conta as fotos anexadas' : 'ex.: 4 fotos no grupo'} /></div>

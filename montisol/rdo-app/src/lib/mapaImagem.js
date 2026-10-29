@@ -32,8 +32,8 @@ export async function mapaPng(svgTexto, sheet, meta, c, statuses) {
     cv.width = W; cv.height = H + cab;
     const ctx = cv.getContext('2d');
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, cv.width, cv.height);
-    ctx.fillStyle = '#16161a'; ctx.fillRect(0, 0, W, cab);
-    ctx.fillStyle = '#ff7a3d'; ctx.fillRect(0, cab - 6, W, 6);
+    ctx.fillStyle = '#243185'; ctx.fillRect(0, 0, W, cab); // azul marinho da Montisol
+    ctx.fillStyle = '#758aff'; ctx.fillRect(0, cab - 6, W, 6);
     ctx.textBaseline = 'top';
     ctx.fillStyle = '#ffffff'; ctx.font = 'bold 44px system-ui, sans-serif';
     ctx.fillText(`${meta.trocador || 'Espelho'} · ${dataBR(meta.data)}${meta.turno ? ' · ' + meta.turno : ''}`, 30, 20);
@@ -42,7 +42,7 @@ export async function mapaPng(svgTexto, sheet, meta, c, statuses) {
     for (const s of lista) {
       ctx.fillStyle = s.color; ctx.beginPath(); ctx.arc(x + 14, 98, 14, 0, Math.PI * 2); ctx.fill();
       ctx.strokeStyle = '#ffffff88'; ctx.lineWidth = 2; ctx.stroke();
-      ctx.fillStyle = '#ececf1';
+      ctx.fillStyle = '#ffffff';
       const t = `${s.label} ${c[s.value] || 0}`;
       ctx.fillText(t, x + 36, 82);
       x += 36 + ctx.measureText(t).width + 34;
@@ -60,9 +60,9 @@ export function mapaHtml(svgTexto, meta, c, passagem) {
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${passagem ? 'Passagem de turno' : 'Mapeamento'} ${esc(meta.trocador)} ${esc(dataBR(meta.data))}</title>
-<style>body{margin:0;font:16px system-ui,sans-serif;background:#fff;color:#16161a}header{padding:12px 14px;background:#16161a;color:#fff}
-header p{margin:4px 0 0;color:#c9c9d4;font-size:14px}svg{display:block;width:100%;height:auto}
-table{border-collapse:collapse;margin:12px 14px;font-size:14px}td,th{border-bottom:1px solid #ddd;padding:4px 8px;text-align:left}
+<style>body{margin:0;font:16px system-ui,sans-serif;background:#fff;color:#121433}header{padding:12px 14px;background:#243185;color:#fff;border-bottom:4px solid #758aff}
+header p{margin:4px 0 0;color:#d9defa;font-size:14px}svg{display:block;width:100%;height:auto}
+table{border-collapse:collapse;margin:12px 14px;font-size:14px}td,th{border-bottom:1px solid #c9cee3;padding:4px 8px;text-align:left}th{background:#2542e6;color:#fff}
 .dica{margin:12px 14px;color:#555;font-size:14px}</style></head>
 <body><header><b>${esc(meta.trocador)} · ${esc(dataBR(meta.data))}${meta.turno ? ' · ' + esc(meta.turno) : ''}</b>
 <p>${esc(meta.resp || '')}${c ? ` · Desobstruídos ${c.desobstruido} · Obstruídos ${c.obstruido} · Tamponados ${c.tamponado} · Furados ${c.furado} · Sem registro ${c.semRegistro} de ${c.total}` : ''}</p></header>

@@ -1,5 +1,6 @@
-/* Configuração: efetivo (importar/remover), "quem sou eu" e mapeamentos guardados. */
+/* Ajustes: envio para a base, efetivo (importar/remover), equipamentos, "quem sou eu" e mapeamentos guardados. */
 import { useApp } from '../estado.jsx';
+import { EnvioBase } from '../componentes/EnvioBase.jsx';
 import { abrirArquivo, baixar } from '../lib/arquivos.js';
 import { lerListaEquipamentos, MODELO_CSV } from '../lib/equipamentos.js';
 import { VERSAO } from '../lib/constantes.js';
@@ -39,6 +40,7 @@ export function Config() {
 
   return (
     <>
+      <EnvioBase />
       <section className="card"><h2 className="sem-margem">Efetivo</h2>
         <p>Fonte: <b>{FONTE_TXT[dados.fonte]}</b><br />Atualizado em: {dataBR(EF.atualizado || '')} · {EF.colaboradores.length} colaboradores</p>
         <p className="dim pequeno">O efetivo real não fica no site público. Importe o arquivo <b>efetivo.json</b> enviado pelo planejamento.</p>

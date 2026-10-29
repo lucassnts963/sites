@@ -4,7 +4,7 @@ import { Mapa } from './componentes/Mapa.jsx';
 import { baixar, copiar, enviarWhats } from './lib/arquivos.js';
 import { legendaMapa, mapaHtml, mapaPng } from './lib/mapaImagem.js';
 import { useEnvio } from './componentes/useEnvio.js';
-import { MOD_TXT } from './lib/constantes.js';
+import { MARCA, MOD_TXT } from './lib/constantes.js';
 import { contar, exportSvg } from './lib/mapa.js';
 import { gravarMapa, importarPassagem, lerMapa, montarPassagem } from './lib/passagem.js';
 import { desobNoTurno, lerPassagem } from './lib/turnos.js';
@@ -14,7 +14,8 @@ import { Historico } from './telas/Historico.jsx';
 import { Lancar } from './telas/Lancar.jsx';
 import { Pesquisar } from './telas/Pesquisar.jsx';
 
-const ABAS = [['lancar', '📝', 'Lançar'], ['pesquisar', '🔎', 'Pesquisar'], ['historico', '🗂️', 'Histórico'], ['config', '⚙️', 'Config']];
+// ícones de linha da marca (versão preta, para fundo claro)
+const ABAS = [['lancar', 'ferramentas', 'Lançar'], ['pesquisar', 'lupa', 'Pesquisar'], ['historico', 'calendario', 'Histórico'], ['config', 'engrenagem', 'Ajustes']];
 
 function Toast() {
   const { aviso } = useApp();
@@ -106,15 +107,15 @@ export function App() {
     <>
       <header className="topo">
         <div>
-          <b>RDO de campo</b>
-          <small>Montisol · Trocador de Calor · Hydro Alunorte</small>
+          <img className="logo" src={MARCA + 'logo-horizontal-branco.png'} alt="Montisol" width="134" height="24" />
+          <small><b>RDO de campo</b> · Trocador de Calor · Hydro Alunorte</small>
         </div>
         {D && tela === 'lancar' && <span className="chip-topo">{MOD_TXT[D.modalidade].split(' ')[0]} · {dataBR(D.data).slice(0, 5)}</span>}
         {dados && (dados.fonte === 'exemplo' || dados.fonte === 'vazio') && <span className="aviso-dados">dados de exemplo</span>}
       </header>
 
       <main>
-        {!D ? <p className="dim carregando">Carregando…</p>
+        {!D ? <div className="abertura"><div><img src={MARCA + 'logo-vertical-colorido.png'} alt="Montisol" /><p>RDO de campo · carregando…</p></div></div>
           : tela === 'lancar' ? <Lancar />
             : tela === 'pesquisar' ? <Pesquisar q={q} setQ={setQ} />
               : tela === 'historico' ? <Historico irPara={irPara} />
@@ -122,7 +123,11 @@ export function App() {
       </main>
 
       <nav className="abas">
-        {ABAS.map(([id, ic, rot]) => <button type="button" key={id} className={tela === id ? 'on' : ''} onClick={() => irPara(id)}>{ic}<span>{rot}</span></button>)}
+        {ABAS.map(([id, ic, rot]) => (
+          <button type="button" key={id} className={tela === id ? 'on' : ''} onClick={() => irPara(id)} aria-current={tela === id ? 'page' : undefined}>
+            <img src={`${MARCA}icones/${ic}-preto.png`} alt="" /><span>{rot}</span>
+          </button>
+        ))}
       </nav>
 
       {D && <EditorMapa />}

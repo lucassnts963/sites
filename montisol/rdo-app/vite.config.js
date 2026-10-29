@@ -12,11 +12,11 @@ const dadosDoSite = () => ({
   name: 'dados-do-site',
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
-      const m = /^\/(dados|desenhos)\/([^?]*)/.exec(req.url || '');
+      const m = /^\/(dados|desenhos|marca)\/([^?]*)/.exec(req.url || '');
       if (!m) return next();
       const arq = path.join(montisol, m[1], decodeURIComponent(m[2]));
-      if (!arq.startsWith(path.join(montisol, m[1])) || !fs.existsSync(arq)) { res.statusCode = 404; return res.end(); }
-      res.setHeader('Content-Type', arq.endsWith('.json') ? 'application/json' : arq.endsWith('.svg') ? 'image/svg+xml' : 'application/octet-stream');
+      if (!arq.startsWith(path.join(montisol, m[1])) || !fs.existsSync(arq) || fs.statSync(arq).isDirectory()) { res.statusCode = 404; return res.end(); }
+      res.setHeader('Content-Type', arq.endsWith('.json') ? 'application/json' : arq.endsWith('.svg') ? 'image/svg+xml' : arq.endsWith('.png') ? 'image/png' : 'application/octet-stream');
       fs.createReadStream(arq).pipe(res);
     });
   },
