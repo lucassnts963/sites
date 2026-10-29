@@ -2,7 +2,9 @@
    O Lucas confere e aprova no n8n; a base de medição só recebe o que ele aprovou.
    - A chave (X-RDO-Chave) é digitada pelo encarregado em Ajustes e fica só no aparelho: o repositório é público.
    - Cada lançamento tem um uuid fixo (envioId); reenviar usa o mesmo id e o n8n responde "duplicado".
-   - O status de cada lançamento fica em localStorage (base:status): fila | enviado | erro. */
+   - O status de cada lançamento fica em localStorage (base:status): fila | enviado | erro | aprovado.
+   - Reenvio (mesmo id) enquanto está pendente ou rejeitado: o n8n atualiza e responde {"ok":true,"atualizado":true} = correção recebida.
+   - Reenvio depois de aprovado/registrado: 409 {"ja_aprovado":true}. É definitivo: sai da fila e não tenta de novo. */
 import { tx } from './idb.js';
 import { store } from './store.js';
 
@@ -10,6 +12,7 @@ export const URL_BASE = 'https://n8n.elucas.dev/webhook/montisol-rdo';
 // Endereço alternativo só para os testes automáticos (servidor local); o app usa sempre URL_BASE.
 const url = () => store.get('base:url-teste', '') || URL_BASE;
 const TEMPO_LIMITE = 20000;
+export const MSG_JA_APROVADO = 'Já aprovado pelo planejamento. Procure o planejamento para alterar.';
 
 export const chaveDeEnvio = () => store.get('base:chave', '');
 export const guardarChave = (c) => (c ? store.set('base:chave', c.trim()) : store.del('base:chave'));
@@ -39,7 +42,7 @@ export async function enfileirar(corpo, lid) {
 
 // ------------------------------------------------------------------ rede
 
-/** POST de um corpo. Devolve { ok, duplicado, http, resposta, erro, semRede }. */
+/** POST de um corpo. Devolve { ok, duplicado, atualizado, http, resposta, erro, semRede, jaAprovado }. */
 export async function postar(corpo, chave) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TEMPO_LIMITE);
@@ -52,7 +55,11 @@ export async function postar(corpo, chave) {
     const texto = await r.text();
     let resposta = null;
     try { resposta = texto ? JSON.parse(texto) : null; } catch (_) { /* resposta não é JSON */ }
-    if (r.status === 200 && resposta && (resposta.ok === true || resposta.duplicado === true)) return { ok: true, duplicado: !!resposta.duplicado, http: 200, resposta };
+    if (r.status === 200 && resposta && (resposta.ok === true || resposta.duplicado === true)) {
+      return { ok: true, duplicado: !!resposta.duplicado, atualizado: !!resposta.atualizado, http: 200, resposta };
+    }
+    // já aprovado/registrado pelo planejamento: não adianta reenviar
+    if (r.status === 409 && resposta && resposta.ja_aprovado) return { ok: false, jaAprovado: true, http: 409, resposta, erro: MSG_JA_APROVADO };
     const motivo = r.status === 401 || r.status === 403 ? 'chave recusada' : resposta && (resposta.erro || resposta.mensagem || resposta.message) ? String(resposta.erro || resposta.mensagem || resposta.message) : texto.slice(0, 160) || 'resposta inesperada';
     return { ok: false, http: r.status, resposta, erro: `HTTP ${r.status}: ${motivo}` };
   } catch (e) {
@@ -77,8 +84,12 @@ export function processarFila(aoMudar) {
       const res = await postar(corpo, chave);
       if (res.ok) {
         await tirarDaFila(it.id);
-        marcar(it.lid, { id: it.id, status: 'enviado', enviadoEm: new Date().toISOString(), erro: '', duplicado: res.duplicado, reenvio: false, statusBase: (res.resposta && res.resposta.status) || '' });
+        marcar(it.lid, { id: it.id, status: 'enviado', enviadoEm: new Date().toISOString(), erro: '', duplicado: res.duplicado, atualizado: res.atualizado, reenvio: false, statusBase: (res.resposta && res.resposta.status) || '' });
         r.enviados++;
+      } else if (res.jaAprovado) {
+        await tirarDaFila(it.id);
+        marcar(it.lid, { id: it.id, status: 'aprovado', erro: MSG_JA_APROVADO, statusBase: (res.resposta && res.resposta.status) || 'aprovado', reenvio: false });
+        r.aprovados = (r.aprovados || 0) + 1;
       } else {
         await guardarNaFila({ ...it, tentativas: (it.tentativas || 0) + 1, ultimoErro: res.erro, ultimaTentativa: new Date().toISOString() });
         marcar(it.lid, { id: it.id, status: res.semRede ? 'fila' : 'erro', erro: res.erro });

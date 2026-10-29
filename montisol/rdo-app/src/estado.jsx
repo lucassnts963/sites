@@ -80,7 +80,9 @@ export function AppProvider({ children }) {
     tocar();
     await processarFila(tocar);
     const st = statusDe(L.id) || {};
-    toast(st.status === 'enviado' ? (st.duplicado ? 'Já estava na base: nada duplicado' : 'Enviado para a base: aguarda a aprovação do planejamento')
+    toast(st.status === 'enviado' ? (st.atualizado ? 'Correção recebida: aguarda a aprovação do planejamento'
+      : st.duplicado ? 'Já estava na base: nada duplicado' : 'Enviado para a base: aguarda a aprovação do planejamento')
+      : st.status === 'aprovado' ? st.erro
       : st.status === 'erro' ? 'Não foi enviado: ' + st.erro + '. Ficou na fila.'
         : 'Sem conexão com a base: ficou na fila e vai sozinho quando houver internet');
     return st;

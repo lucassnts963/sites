@@ -1,4 +1,4 @@
-/* Situação do envio do lançamento para a base: enviado em…, na fila ou erro. */
+/* Situação do envio do lançamento para a base: enviado em…, na fila, erro ou já aprovado (definitivo). */
 import { useApp } from '../estado.jsx';
 import { statusDe } from '../lib/base.js';
 
@@ -8,7 +8,8 @@ const quando = (iso) => { const d = new Date(iso); return `${String(d.getDate())
 export function situacaoBase(lid) {
   const st = statusDe(lid);
   if (!st) return null;
-  if (st.status === 'enviado') return { classe: 'ok', texto: `base: enviado em ${quando(st.enviadoEm)}` };
+  if (st.status === 'enviado') return { classe: 'ok', texto: `base: ${st.atualizado ? 'correção enviada' : 'enviado'} em ${quando(st.enviadoEm)}` };
+  if (st.status === 'aprovado') return { classe: 'aprovado', texto: `base: aprovado · ${st.erro}` };
   if (st.status === 'erro') return { classe: 'erro', texto: `base: na fila · ${st.erro}` };
   return { classe: 'fila', texto: `base: na fila${st.erro ? ' · ' + st.erro : ''}` };
 }
