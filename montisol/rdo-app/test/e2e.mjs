@@ -87,7 +87,10 @@ try {
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) erros.push(m.text()); });
   // efetivo.json não fica no repositório público: o 404 dele é esperado; qualquer outro é erro.
   page.on('response', (r) => { if (r.status() >= 400 && !r.url().endsWith('/dados/efetivo.json') && !r.url().startsWith(URL_BASE_TESTE)) erros.push(r.status() + ' ' + r.url()); });
-  page.on('dialog', (d) => d.accept());
+  // confirmações: registra o texto; recusarProxima = true faz o "Cancelar" da próxima
+  const dialogos = [];
+  let recusarProxima = false;
+  page.on('dialog', (d) => { dialogos.push(d.message()); if (recusarProxima) { recusarProxima = false; d.dismiss(); } else d.accept(); });
   await page.evaluateOnNewDocument((r, urlBase) => {
     if (!localStorage.getItem('montisol-rdo:v1:registros')) localStorage.setItem('montisol-rdo:v1:registros', JSON.stringify([r]));
     localStorage.setItem('montisol-rdo:v1:base:url-teste', JSON.stringify(urlBase)); // o app aponta para o webhook simulado
@@ -193,7 +196,43 @@ try {
   await page.waitForSelector('.mapa-main circle[data-id]');
   const n = await page.$$eval('.mapa-main circle[data-id]', (c) => c.length);
   ok(n === 894, `mapa abre com ${n} tubos`);
-  for (const i of [0, 1, 2]) { const c = (await page.$$('.mapa-main circle[data-id]'))[i * 40]; await c.click(); }
+  // ---- modos do mapa: abre em Mover; em Mover nenhum toque marca
+  const tubos = () => page.$$('.mapa-main circle[data-id]');
+  const centro = async (k) => { const b = await (await tubos())[k].boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
+  const cores = () => page.$$eval('.mapa-main circle[data-id]', (cs) => cs.map((c) => c.getAttribute('fill')).join(','));
+  const salvo = () => page.evaluate(() => localStorage.getItem('montisol-rdo:v1:mapa:HE-41A-01A:resfriamento-a-vacuo--6-colmeias'));
+  const contagem = async (rot) => (await page.$$eval('.brush', (bs) => bs.map((b) => b.innerText.replace(/\s+/g, ' ')))).find((t) => t.startsWith(rot));
+  const espere = (ms) => new Promise((r) => setTimeout(r, ms));
+  ok(await page.$eval('[data-modo="move"]', (b) => b.getAttribute('aria-checked')) === 'true', 'mapa abre em Mover');
+  ok((await page.$eval('.modo-aviso', (d) => d.textContent)).includes('Mover: toque nos tubos desativado'), 'aviso do modo: "Mover: toque nos tubos desativado"');
+  const cores0 = await cores(), salvo0 = await salvo();
+  for (const k of [0, 40, 80]) { const q = await centro(k); await page.touchscreen.tap(q.x, q.y); } // toque simples (touch)
+  { const q = await centro(120); await page.touchscreen.tap(q.x, q.y); await page.touchscreen.tap(q.x, q.y); } // toque duplo
+  { const a = await centro(200), b = await centro(260); await page.touchscreen.touchStart(a.x, a.y); for (let i = 1; i <= 8; i++) await page.touchscreen.touchMove(a.x + ((b.x - a.x) * i) / 8, a.y + ((b.y - a.y) * i) / 8); await page.touchscreen.touchEnd(); } // arrasto (touch)
+  { const a = await centro(300), b = await centro(340); await page.mouse.click(a.x, a.y); await page.mouse.move(a.x, a.y); await page.mouse.down(); await page.mouse.move(b.x, b.y, { steps: 6 }); await page.mouse.up(); } // mouse
+  let pincaOk = true;
+  try { const a = await centro(400), b = await centro(440); const t1 = await page.touchscreen.touchStart(a.x, a.y); const t2 = await page.touchscreen.touchStart(b.x, b.y); await t2.move(b.x + 40, b.y + 40); await t2.end(); await t1.end(); } // pinça
+  catch (_) { pincaOk = false; }
+  await espere(300);
+  ok(await cores() === cores0 && await salvo() === salvo0, `Mover: toque, toque duplo, arrasto (touch e mouse)${pincaOk ? ' e pinça' : ''} não mudaram nenhum tubo`);
+  ok((await contagem('Desobstruído')).endsWith(' 0'), 'Mover: contagem continua 0');
+  // Marcar: escolha explícita; o toque marca
+  await page.$eval('[data-modo="mark"]', (b) => b.click());
+  ok((await page.$eval('.modo-aviso', (d) => d.textContent)).includes('Marcar: o toque marca o tubo') && await page.$eval('[data-modo="mark"]', (b) => b.getAttribute('aria-checked')) === 'true', 'aviso do modo: "Marcar: o toque marca o tubo"');
+  await clicar('⤢');
+  for (const k of [0, 40, 80]) { const q = await centro(k); await page.touchscreen.tap(q.x, q.y); }
+  await espere(200);
+  ok((await contagem('Desobstruído')).endsWith(' 3'), 'Marcar: 3 toques marcam 3 tubos');
+  if (pincaOk) {
+    const k = 500, a = await centro(k), b = await centro(k + 60);
+    const t1 = await page.touchscreen.touchStart(a.x, a.y); const t2 = await page.touchscreen.touchStart(b.x, b.y); await t2.end(); await t1.end();
+    await espere(200);
+    ok((await contagem('Desobstruído')).endsWith(' 3') && (await (await tubos())[k].evaluate((c) => c.getAttribute('fill'))) === '#fff', 'Marcar: pinça (dois dedos) não marca e desfaz a cor do primeiro dedo');
+  }
+  { const q = await centro(120); await page.touchscreen.tap(q.x, q.y); }
+  ok((await contagem('Desobstruído')).endsWith(' 4'), 'Marcar: mais um toque marca o 4º');
+  await clicar('↶');
+  ok((await contagem('Desobstruído')).endsWith(' 3'), 'desfazer volta para 3');
   const pincel = await page.$eval('.brush', (b) => b.innerText);
   ok(/Desobstru.do\s*3/.test(pincel), `marcar 3 tubos como desobstruídos (${JSON.stringify(pincel)})`);
   await foto('2-mapa');
@@ -205,9 +244,29 @@ try {
   const envHtml = await ultimoEnvio(3);
   const ah = envHtml.arquivos[0];
   ok(ah.tipo === 'text/html' && ah.conteudo.includes('data-beacon-mapeamento="1"') && (ah.conteudo.match(/data-status="desobstruido"/g) || []).length === 3, 'mapa vai como documento com o SVG dentro');
+  // ações em massa no mapa pedem confirmação
+  const entrada = await page.$('section.mapa input[type="file"]');
+  const ARQ_HTML = path.join(tmp, 'passagem-teste.html'); fs.writeFileSync(ARQ_HTML, ah.conteudo);
+  const ARQ_SVG = path.join(tmp, 'espelho-tamponado.svg');
+  fs.writeFileSync(ARQ_SVG, ah.conteudo.slice(ah.conteudo.indexOf('<svg'), ah.conteudo.lastIndexOf('</svg>') + 6).replace(/data-status="desobstruido"/g, 'data-status="tamponado"'));
+  const coresAntes = await cores(), nd = dialogos.length;
+  recusarProxima = true; await entrada.uploadFile(ARQ_HTML); await espere(500);
+  ok(dialogos.length === nd + 1 && dialogos[nd].startsWith('Juntar a passagem de turno') && await cores() === coresAntes, 'importar passagem no mapa pede confirmação; Cancelar não muda nada');
+  recusarProxima = true; await entrada.uploadFile(ARQ_SVG); await espere(500);
+  ok(dialogos[dialogos.length - 1].startsWith('Substituir TODAS as marcações') && await cores() === coresAntes, 'importar SVG pede confirmação; Cancelar não muda nada');
+  await entrada.uploadFile(ARQ_SVG); await espere(500);
+  ok((await contagem('Tamponado')).endsWith(' 3') && (await contagem('Desobstruído')).endsWith(' 0'), 'confirmando, o SVG substitui as marcações');
+  await clicar('↶');
+  ok((await contagem('Desobstruído')).endsWith(' 3') && (await contagem('Tamponado')).endsWith(' 0') && await cores() === coresAntes, 'desfazer volta ao espelho de antes da importação');
   await clicar('Fechar');
   await page.waitForFunction(() => !document.querySelector('.mapa'));
   ok((await texto()).includes('🟢 3'), 'contagem do mapa aparece no equipamento');
+  await clicar('Mapear espelho');
+  await page.waitForSelector('.modo-aviso');
+  ok(await page.$eval('[data-modo="move"]', (b) => b.getAttribute('aria-checked')) === 'true', 'ao sair e voltar ao mapa, volta para Mover');
+  await foto('2b-mapa-mover');
+  await clicar('Fechar');
+  await page.waitForFunction(() => !document.querySelector('.mapa'));
   ok(await page.$eval('.prod-mapa', (d) => d.innerText.replace(/\s+/g, ' ')).then((t) => /Desobstruídos no turno 3 Acumulado 3/.test(t)), 'produção do turno vem do mapa (3 no turno, 3 acumulados)');
   // dados da manutenção: preenchidos uma vez
   const [inTotal, inObst] = await page.$$('.manut input[type="number"]');
@@ -257,7 +316,7 @@ try {
   await page.waitForFunction(() => /enviado em/.test(document.querySelector('.status-base').textContent), { timeout: 15000 });
   ok(lancamentosNaBase().length === 1, 'conexão voltou: enviado sozinho, uma vez');
   const env = lancamentosNaBase()[0].corpo;
-  ok(/^[0-9a-f-]{36}$/.test(env.id) && env.versao === 1 && env.app_versao === '0.5.0', `corpo v1 com uuid (${env.id})`);
+  ok(/^[0-9a-f-]{36}$/.test(env.id) && env.versao === 1 && env.app_versao === '0.6.0', `corpo v1 com uuid (${env.id})`);
   const eq0 = env.lancamento.equipamentos[0];
   ok(env.lancamento.modalidade === 'ppu' && eq0.tag === 'HE 41A-01A' && eq0.servico === 'desobstrucao' && eq0.prod.desob === 3 && eq0.prod.mapeados === 300, 'equipamento com TAG, serviço e produção numérica');
   const pf = env.lancamento.pessoas.find((x) => x.nome === 'JATISTA DOIS');
@@ -320,6 +379,7 @@ try {
     await p2.waitForSelector('.mapa-main circle[data-id]');
     const verdes = await p2.$$eval('.mapa-main circle[data-id]', (cs) => cs.filter((c) => c.getAttribute('fill') === '#16876a').length);
     ok(verdes === 3, `aparelho 2: espelho abre com os 3 tubos do ADM (${verdes})`);
+    await p2.$eval('[data-modo="mark"]', (b) => b.click());
     for (const k of [5, 6]) { const c = (await p2.$$('.mapa-main circle[data-id]'))[k * 40]; await c.click(); }
     await clicar2('Fechar');
     await p2.waitForFunction(() => !document.querySelector('.mapa'));

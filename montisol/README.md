@@ -91,6 +91,21 @@ O app novo reaproveita `dados/` e `desenhos/`.
 - **Sem sinal:** depois do primeiro acesso com internet, o app abre offline (rede primeiro, cache de reserva). Lançamentos e histórico são locais de qualquer forma.
 - **Histórico:** local, com ver, editar, duplicar para hoje, backup e restauração em arquivo JSON.
 
+## Mapa de tubos: modos Mover e Marcar (regra de segurança)
+
+Marcação errada no espelho vira número errado no RDO, no WhatsApp e na base de medição. Por isso (`rdo-app/src/lib/gestos.js`, testado em `test/gestos.test.js` e no navegador):
+
+- **O mapa sempre abre em ✋ Mover** e volta para Mover toda vez que é fechado e aberto de novo. Em Mover, **nenhum toque marca tubo**:
+  toque simples, toque duplo, arrasto, pinça (dois dedos) ou mouse só navegam e dão zoom.
+- **Só em ✏ Marcar o toque marca**, e o encarregado escolhe esse modo de propósito. Em Marcar: tocar num tubo aplica o pincel escolhido
+  (tocar de novo com o mesmo pincel limpa); arrastar **começando num tubo** pinta os tubos por onde o dedo passa; arrastar começando fora
+  dos tubos só navega; ao pôr o segundo dedo (pinça) a pintura começada é cancelada e a cor volta ao que estava salvo.
+- O modo ativo fica numa faixa logo acima do desenho: azul-marinho "Mover: toque nos tubos desativado" ou amarela
+  "Marcar: o toque marca o tubo como …" (com a cor do pincel), e no botão selecionado do par Mover/Marcar.
+- **↶ Desfazer** desfaz a última marcação (e também a importação de um SVG).
+- **Ações em massa pedem confirmação:** Importar SVG no mapa ("Substituir TODAS as marcações…", dá para desfazer), juntar uma passagem de turno
+  (no mapa e em 📥 Receber passagem, com resumo de quem enviou e quantos tubos), Nova manutenção (limpa o espelho) e usar a marcação de um SVG do aparelho.
+
 ## Identidade visual
 
 Segue a identidade da Montisol (`projects/montisol/assets/identidade-visual/tokens.json` no vault): azul marinho `#243185`, azul royal `#2542e6`,

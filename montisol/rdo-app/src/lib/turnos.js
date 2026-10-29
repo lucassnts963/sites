@@ -120,3 +120,11 @@ export function lerPassagem(texto) {
   else if (t.startsWith('{')) o = JSON.parse(t);
   return o && o.tipo === TIPO_PASSAGEM ? o : null;
 }
+
+/** Texto da confirmação antes de juntar uma passagem (ação em massa no espelho). */
+export function confirmacaoPassagem(p) {
+  const d = p.geradoEm ? new Date(p.geradoEm) : null;
+  const quando = d ? ` em ${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}` : '';
+  const tubos = p.mapa ? Object.keys(p.mapa.estado || {}).length : 0;
+  return `Juntar a passagem de turno de ${p.de || 'outro aparelho'}${quando} (${p.tag}: ${tubos} tubo(s) marcados, ${(p.turnos || []).length} turno(s)) com o espelho deste aparelho? Em cada tubo vale a marcação mais recente.`;
+}

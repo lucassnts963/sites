@@ -217,3 +217,15 @@ table.turnos tr.este td { background: #e8ecfe; }
 .resultado-teste { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; white-space: pre-wrap; word-break: break-word; }
 .resultado-teste.ok { background: var(--ok-fundo); color: var(--ok); }
 .resultado-teste.erro { background: var(--falta-fundo); color: var(--falta); }
+
+/* modos do espelho: Mover (padrão, o toque não marca) e Marcar */
+.seg.modo-mapa { flex: 0 0 auto; }
+.seg.modo-mapa button { min-width: 108px; font-size: 15px; }
+.seg.modo-mapa button.on[data-modo="move"] { background: var(--marinho); color: #fff; }
+.seg.modo-mapa button.on[data-modo="mark"] { background: var(--royal); color: #fff; }
+.modo-aviso { padding: 8px 12px; font-size: 15px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.modo-aviso.move { background: var(--marinho); color: #fff; }
+.modo-aviso.mark { background: #fff4c2; color: #4a3500; border-bottom: 3px solid var(--royal); }
+.modo-aviso .cor { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(0,0,0,.3); vertical-align: middle; }
+.mapa-main.modo-move { cursor: grab; }
+.mapa-main.modo-mark { cursor: crosshair; }

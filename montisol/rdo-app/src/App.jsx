@@ -7,7 +7,7 @@ import { useEnvio } from './componentes/useEnvio.js';
 import { MARCA, MOD_TXT } from './lib/constantes.js';
 import { contar, exportSvg } from './lib/mapa.js';
 import { gravarMapa, importarPassagem, lerMapa, montarPassagem } from './lib/passagem.js';
-import { desobNoTurno, lerPassagem } from './lib/turnos.js';
+import { confirmacaoPassagem, desobNoTurno, lerPassagem } from './lib/turnos.js';
 import { dataBR, slug } from './lib/texto.js';
 import { Config } from './telas/Config.jsx';
 import { Historico } from './telas/Historico.jsx';
@@ -87,7 +87,8 @@ function EditorMapa() {
       aoImportar={(texto) => {
         const p = lerPassagem(texto);
         if (!p) return null;
-        if (p.tag && p.tag.toUpperCase() !== eq.tag.toUpperCase()) { toast(`Esta passagem é da TAG ${p.tag}`); return lerMapa(eq.tag, eq.desenho).estado; }
+        if (p.tag && p.tag.toUpperCase() !== eq.tag.toUpperCase()) { toast(`Esta passagem é da TAG ${p.tag}`); return false; }
+        if (!confirm(confirmacaoPassagem(p))) return false;
         const r = importarPassagem(p);
         toast(`Passagem de ${r.de || 'outro aparelho'} recebida: ${r.tubos} tubo(s) atualizado(s), ${r.turnosNovos} turno(s) novo(s)`);
         tocar();
