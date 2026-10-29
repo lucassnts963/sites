@@ -1,7 +1,7 @@
 /* Service worker do RDO de campo: rede primeiro, cache como reserva (funciona sem sinal na planta).
    Sempre busca a versão nova quando há internet; sem internet usa a última que o aparelho já abriu. */
-const CACHE = 'montisol-rdo-v1';
-const BASE = ['./', './index.html', './rdo/', './rdo/index.html', './rdo/app.css', './rdo/app.js', './rdo/mapa.js', './rdo/manifest.webmanifest', './rdo/icone.svg',
+const CACHE = 'montisol-rdo-v2';
+const BASE = ['./', './index.html', './rdo/', './rdo/index.html', './rdo/assets/app.css', './rdo/assets/app.js', './rdo/manifest.webmanifest', './rdo/icone.svg',
   './dados/trocadores.json', './dados/efetivo.exemplo.json', './desenhos/catalogo.json'];
 
 self.addEventListener('install', (e) => {

@@ -1,0 +1,11 @@
+{
+  "name": "RDO de campo · Montisol",
+  "short_name": "RDO Montisol",
+  "description": "Relatório diário do encarregado: PPU, equipes extras e 6x4",
+  "start_url": "./",
+  "scope": "../",
+  "display": "standalone",
+  "background_color": "#16161a",
+  "theme_color": "#16161a",
+  "icons": [ { "src": "icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" } ]
+}

@@ -12,11 +12,14 @@ montisol/
 ├── index.html              portal das ferramentas do Montisol (cartões)
 ├── sw.js                   service worker: usa a internet quando há e o cache quando não há (planta sem sinal)
 ├── README.md               este arquivo
-├── rdo/                    app "RDO de campo"
-│   ├── index.html          casca da página
-│   ├── app.css             estilos (mobile-first)
-│   ├── app.js              lógica: lançamentos, mensagens do WhatsApp, histórico, pesquisa
-│   └── mapa.js             mapeador de espelho (tubo a tubo), adaptado do kit de campo do Beacon
+├── rdo/                    app "RDO de campo" PUBLICADO (gerado pelo build de rdo-app/; não editar à mão)
+│   ├── index.html, manifest.webmanifest, icone.svg
+│   └── assets/app.js, assets/app.css
+├── rdo-app/                código-fonte do RDO (React + Vite)
+│   ├── src/lib/            lógica pura: mensagens do WhatsApp, validação, efetivo, rascunho, armazenamento, mapa (SVG)
+│   ├── src/telas/          Lançar (PPU e presença), Pesquisar, Histórico, Config
+│   ├── src/componentes/    campos, busca de pessoas, editor do espelho
+│   └── test/               testes (mensagens comparadas com a versão 0.1 em test/legado/) e teste no navegador
 ├── dados/                  dados em listas JSON, separados do código
 │   ├── trocadores.json     TAGs e o desenho de cada uma
 │   ├── efetivo.exemplo.json  exemplo (nomes fictícios) do formato do efetivo
@@ -71,6 +74,23 @@ O app novo reaproveita `dados/` e `desenhos/`.
 - **Pesquisar:** busca por colaborador (equipe, encarregado, supervisor e os apontamentos feitos naquele aparelho).
 - **Sem sinal:** depois do primeiro acesso com internet, o app abre offline (rede primeiro, cache de reserva). Lançamentos e histórico são locais de qualquer forma.
 - **Histórico:** local, com ver, editar, duplicar para hoje, backup e restauração em arquivo JSON.
+
+## Mexer no RDO
+
+O código fica em `rdo-app/`; o GitHub Pages continua servindo arquivos estáticos (sem Actions), por isso o build é commitado em `rdo/`.
+
+```
+cd montisol/rdo-app
+npm install
+npm run dev          # http://localhost:5173/rdo/  (serve ../dados e ../desenhos)
+npm test             # testes da lógica
+npm run test:e2e     # build + teste no Chromium (CHROMIUM=/caminho se não for /usr/bin/chromium)
+npm run build        # gera ../rdo — commite junto com o código
+```
+
+- Os dados no aparelho usam as mesmas chaves da versão 0.1 (`montisol-rdo:v1:*`): rascunho, histórico, mapas e efetivo importado continuam lá depois de atualizar.
+- O texto das mensagens do WhatsApp é comparado com o da versão 0.1 nos testes; se mudar o formato de propósito, ajuste `test/mensagens.test.js`.
+- Mudou a lista de arquivos do build? Atualize `BASE` e a versão do cache em `sw.js`.
 
 ## Publicar
 
