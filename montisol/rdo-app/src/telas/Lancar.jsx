@@ -9,9 +9,18 @@ import { garantirConteudo, novoDraft, novoEq, preencherEquipe } from '../lib/ras
 import { dataBR, hoje, norm } from '../lib/texto.js';
 import { FormPPU } from './FormPPU.jsx';
 import { FormPresenca } from './FormPresenca.jsx';
+import { arquivosDasFotos, rodapeDe, textoDasFotos } from '../componentes/Fotos.jsx';
+import { useEnvio } from '../componentes/useEnvio.js';
+import { slug } from '../lib/texto.js';
+
+/** Grupos de fotos do lançamento: um por equipamento (PPU) e o do lançamento. */
+const gruposDeFotos = (D) => [
+  ...(D.equipamentos || []).filter((e) => (e.anexos || []).length).map((e) => ({ tag: e.tag, anexos: e.anexos })),
+  ...((D.anexos || []).length && D.modalidade !== 'ppu' ? [{ tag: '', anexos: D.anexos }] : []),
+];
 
 function Cabecalho() {
-  const { EF, D, mudar, definirD, eu, setEu, toast } = useApp();
+  const { EF, D, mudar, definirD, eu, setEu, toast, limparFotos } = useApp();
   const encs = encarregados(EF);
   const outro = D._digitar || (D.encarregado && !encs.some((e) => norm(e) === norm(D.encarregado)));
   const turnos = turnosDe(D.modalidade);
@@ -21,19 +30,20 @@ function Cabecalho() {
     const n = novoDraft(EF, eu);
     garantirConteudo(EF, n);
     definirD(n);
+    limparFotos();
   };
 
   const escolherEnc = (val) => {
     if (val === '__outro') { mudar((d) => { d._digitar = true; d.encarregado = ''; }); return; }
     const mod = modalidadeDoEnc(EF, val) || D.modalidade;
-    const carregar = mod !== 'ppu' && (!D.pessoas.length || confirm('Carregar a equipe deste encarregado na lista?'));
+    const carregar = !D.pessoas.length || confirm('Carregar a equipe deste encarregado na lista de presença?');
     mudar((d) => {
       delete d._digitar;
       d.encarregado = val;
       d.modalidade = mod;
       if (!d.turno || !turnosDe(d.modalidade).includes(d.turno)) d.turno = turnoDoEnc(EF, d.encarregado, d.modalidade);
       if (carregar) preencherEquipe(EF, d);
-      else if (d.modalidade === 'ppu' && d.equipamentos.length === 1 && !d.equipamentos[0].tag) d.equipamentos[0] = novoEq(EF, d);
+      if (d.modalidade === 'ppu' && d.equipamentos.length === 1 && !d.equipamentos[0].tag) d.equipamentos[0] = novoEq(EF, d);
       garantirConteudo(EF, d);
     });
   };
@@ -81,6 +91,15 @@ function Cabecalho() {
 
 function BarraAcoes({ erros }) {
   const { D, salvarRegistro, toast, setMensagem } = useApp();
+  const enviar = useEnvio();
+  const grupos = gruposDeFotos(D);
+  const nFotos = grupos.reduce((n, g) => n + g.anexos.length, 0);
+  const enviarFotos = () => enviar(JSON.stringify(grupos) + D.data + D.turno, async () => {
+    const files = [];
+    for (const g of grupos) files.push(...await arquivosDasFotos(g.anexos, rodapeDe(D, g.tag), `foto-${slug(g.tag || D.encarregado || 'rdo')}-${D.data}`));
+    const text = [`📸 *Fotos do RDO* – ${rodapeDe(D, '')}`, ...grupos.map((g) => textoDasFotos(g.tag ? `*${g.tag}*` : '', g.anexos).trim())].join('\n');
+    return { files, text };
+  });
   const whats = () => {
     if (erros.length) { setMensagem({ msg: mensagem(D), erros }); return; }
     salvarRegistro({ enviadoEm: new Date().toISOString() });
@@ -90,6 +109,7 @@ function BarraAcoes({ erros }) {
     <div className="acoes">
       <button type="button" className="btn" onClick={() => setMensagem({ msg: mensagem(D), erros })}>👁️ Ver</button>
       <button type="button" className="btn" onClick={() => { if (salvarRegistro()) toast('Salvo no histórico deste aparelho'); }}>💾 Salvar</button>
+      {nFotos > 0 && <button type="button" className="btn" onClick={enviarFotos} title="Envia as fotos com a legenda gravada">📷 {nFotos}</button>}
       <button type="button" className="btn wa" onClick={whats}>📲 WhatsApp{erros.length ? <span className="badge" title="itens a completar">{erros.length}</span> : null}</button>
     </div>
   );

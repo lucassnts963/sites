@@ -2,7 +2,18 @@
    O texto precisa sair idêntico ao da versão 0.1 (test/mensagens.test.js compara com ela). */
 import { ROTULO_ST, MOD_TXT } from './constantes.js';
 import { minutos, resumoParadas } from './tempo.js';
-import { cap, dataBR, v } from './texto.js';
+import { cap, dataBR, normTag, v } from './texto.js';
+
+const ROT_MOMENTO = { antes: 'antes', durante: 'durante', depois: 'depois' };
+const faltasEm = (d, tag) => (d.pessoas || []).filter((p) => p.status === 'falta' && tag && normTag(p.deveria) === normTag(tag));
+
+/** Lista das fotos anexadas com a legenda (vazia se não há fotos). */
+function linhasFotos(anexos) {
+  const a = anexos || [];
+  if (!a.length) return [];
+  return [`• Fotos anexadas: ${a.length}`, ...a.map((x, i) => `   ${i + 1}. ${ROT_MOMENTO[x.momento] ? '(' + ROT_MOMENTO[x.momento] + ') ' : ''}${v(x.legenda) || 'sem legenda'}`)];
+}
+const qtdFotos = (anexos, momento) => { const n = (anexos || []).filter((x) => x.momento === momento).length; return n ? `${n} foto(s)` : ''; };
 
 export const nomePessoa = (p) => p.nome + (p.origem === 'manual' ? ` (${p.contrato ? 'outro contrato: ' + p.contrato : 'sem cadastro'})` : '');
 
@@ -14,6 +25,8 @@ function blocoPPU(d, eq) {
   L.push(`🔧 *Turno:* ${v(d.turno)}`);
   L.push(`🏷️ *TAG do trocador:* ${v(eq.tag)}`);
   L.push(`👷 *Equipe:* ${(eq.equipe || []).map(nomePessoa).join(', ')}`);
+  const faltas = faltasEm(d, eq.tag);
+  if (faltas.length) L.push(`❌ *Faltas:* ${faltas.map((p) => `${nomePessoa(p)} (${v(p.just) || 'Sem justificativa'})`).join(', ')}`);
   L.push(`🦺 *AQS do serviço:* ${simNao(eq.aqs)}`);
   L.push(`• Nº ou referência da AQS: ${v(eq.aqsRef)}`, '');
   L.push('⏱️ *1. HORÁRIOS DA ATIVIDADE*');
@@ -34,11 +47,25 @@ function blocoPPU(d, eq) {
   L.push('', '📈 *RESUMO DAS PARADAS*', `• Tempo total parado: ${r.total} minutos`, `• Total de paradas Hydro: ${r.hydro} minutos`, `• Total de paradas Montisol: ${r.montisol} minutos`, '');
   L.push('🔧 *4. ATIVIDADES / OBSERVAÇÕES*');
   L.push(`• Serviço executado: ${v(eq.ativ.servico)}`, `• Situação atual: ${v(eq.ativ.situacao)}`, `• Pendências: ${v(eq.ativ.pend)}`, `• Próxima etapa / TAG: ${v(eq.ativ.prox)}`, '');
-  L.push('📸 *5. REGISTRO FOTOGRÁFICO*', `• Antes: ${v(eq.fotos.antes)}`, `• Depois: ${v(eq.fotos.depois)}`);
+  L.push('📸 *5. REGISTRO FOTOGRÁFICO*', `• Antes: ${v(eq.fotos.antes) || qtdFotos(eq.anexos, 'antes')}`, `• Depois: ${v(eq.fotos.depois) || qtdFotos(eq.anexos, 'depois')}`, ...linhasFotos(eq.anexos));
   return L.join('\n');
 }
 
-export const msgPPU = (d) => (d.equipamentos || []).map((eq) => blocoPPU(d, eq)).join('\n\n━━━━━━━━━━━━━━━━━━\n\n');
+/** Presença da equipe PPU (só entra se a lista foi apontada). */
+function blocoPresencaPPU(d) {
+  const ps = d.pessoas || [];
+  const pres = ps.filter((p) => p.status === 'presente'), faltas = ps.filter((p) => p.status === 'falta');
+  const fora = ps.filter((p) => p.status === 'ferias' || p.status === 'afastado');
+  const linha = (p, i) => `${i + 1}. ${nomePessoa(p)}${p.funcao ? ' – ' + cap(p.funcao) : ''}`;
+  const L = ['👥 *PRESENÇA DA EQUIPE PPU – MONTISOL | HYDRO ALUNORTE*', '', `📅 *Data:* ${dataBR(d.data)}`, `🔧 *Turno:* ${v(d.turno)}`, `👷 *Encarregado:* ${v(d.encarregado)}`, ''];
+  L.push(`✅ *PRESENTES (${pres.length})*`, ...(pres.length ? pres.map(linha) : ['• Nenhum']), '');
+  L.push(`❌ *FALTAS (${faltas.length})*`, ...(faltas.length ? faltas.map((p, i) => `${linha(p, i)} – Deveria estar: ${v(p.deveria) || '—'} – Justificativa: ${v(p.just) || 'Sem justificativa'}`) : ['• Nenhuma']));
+  if (fora.length) L.push('', `🏖️ *FÉRIAS / AFASTADOS (${fora.length})*`, ...fora.map((p, i) => `${linha(p, i)} – ${ROTULO_ST[p.status]}`));
+  return L.join('\n');
+}
+
+const SEP = '\n\n━━━━━━━━━━━━━━━━━━\n\n';
+export const msgPPU = (d) => [...(d.equipamentos || []).map((eq) => blocoPPU(d, eq)), ...((d.pessoas || []).length ? [blocoPresencaPPU(d)] : [])].join(SEP);
 
 export function msgPresenca(d) {
   const ps = d.pessoas || [];
@@ -68,6 +95,7 @@ export function msgPresenca(d) {
   } else if (v(d.obs)) {
     L.push('', '📝 *OBSERVAÇÕES*', v(d.obs));
   }
+  if ((d.anexos || []).length) L.push('', '📸 *REGISTRO FOTOGRÁFICO*', ...linhasFotos(d.anexos));
   return L.join('\n');
 }
 
@@ -85,6 +113,11 @@ export function validar(d) {
       if (!(eq.equipe || []).length) erros.push(`Equipamento ${i + 1}: aponte a equipe que trabalhou nele.`);
       if (!v(eq.hor.ddsIni) || !v(eq.hor.ddsFim)) erros.push(`Equipamento ${i + 1}: informe o início e o término do DDS.`);
       (eq.paradas || []).forEach((p, j) => { if (!p.resp) erros.push(`Equipamento ${i + 1}, parada ${j + 1}: informe o responsável (Hydro ou Montisol).`); });
+    });
+    (d.pessoas || []).forEach((p) => {
+      if (p.status !== 'falta') return;
+      if (!v(p.just)) erros.push(`${p.nome}: falta precisa de justificativa (ou toque em "Sem justificativa").`);
+      if (!v(p.deveria)) erros.push(`${p.nome}: informe onde deveria estar (TAG).`);
     });
   } else {
     if (!(d.pessoas || []).length) erros.push('A lista da equipe está vazia.');

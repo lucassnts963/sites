@@ -5,7 +5,7 @@ import { contar, DEFAULT_STATUS, parseSheet } from '../lib/mapa.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
-export function Mapa({ sheet, estadoInicial, statuses, titulo, onChange, onClose, onExport }) {
+export function Mapa({ sheet, estadoInicial, statuses, titulo, onChange, onClose, onEnviarImagem, onEnviarArquivo, onBaixarSvg }) {
   const lista = statuses || DEFAULT_STATUS;
   const host = useRef(null);
   const est = useRef({ ...(estadoInicial || {}) });
@@ -166,11 +166,15 @@ export function Mapa({ sheet, estadoInicial, statuses, titulo, onChange, onClose
         <button type="button" className="btn" onClick={() => api.current.fit()}>⤢</button>
         <button type="button" className="btn" onClick={() => api.current.undo()}>↶</button>
         <span className="sp" />
-        <button type="button" className="btn" onClick={() => arquivo.current.click()}>📂 Importar SVG</button>
-        <button type="button" className="btn pri" onClick={() => onExport({ ...est.current })}>📤 Enviar SVG</button>
+        <button type="button" className="btn" onClick={() => arquivo.current.click()}>📂 Importar</button>
+      </div>
+      <div className="mapa-row">
+        <button type="button" className="btn pri" onClick={() => onEnviarImagem({ ...est.current })} title="Imagem PNG com as contagens: o WhatsApp mostra como foto">🖼️ Enviar imagem</button>
+        <button type="button" className="btn" onClick={() => onEnviarArquivo({ ...est.current })} title="Documento com o SVG dentro, para o painel">📄 Enviar arquivo</button>
+        <button type="button" className="btn" onClick={() => onBaixarSvg({ ...est.current })}>⬇ SVG</button>
       </div>
       <div className="mapa-main" ref={host} />
-      <input type="file" accept=".svg,image/svg+xml" hidden ref={arquivo} onChange={importar} />
+      <input type="file" accept=".svg,.html,image/svg+xml,text/html" hidden ref={arquivo} onChange={importar} />
     </section>
   );
 }

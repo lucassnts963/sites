@@ -2,6 +2,7 @@
    O rascunho é alterado com mudar(fn): fn recebe uma cópia, altera no lugar, e a cópia é salva no aparelho. */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { carregarDados } from './lib/dados.js';
+import { fotosReferenciadas, limparFotosOrfas } from './lib/fotos.js';
 import { garantirConteudo, migrar, novoDraft } from './lib/rascunho.js';
 import { gravarRegistro, quandoFaltarEspaco, registros, store } from './lib/store.js';
 import { clone } from './lib/texto.js';
@@ -38,16 +39,19 @@ export function AppProvider({ children }) {
       const r = migrar(store.get('rascunho', null)) || novoDraft(x.EF, store.get('eu', ''));
       garantirConteudo(x.EF, r);
       definirD(r);
+      limparFotosOrfas(fotosReferenciadas(r, registros()));
     });
   }, [recarregarDados, definirD]);
 
   const atualizarRegistros = useCallback(() => setRegs(registros()), []);
   const salvarRegistro = useCallback((extra) => { const ok = gravarRegistro(Dref.current, extra); atualizarRegistros(); return ok; }, [atualizarRegistros]);
+  // Apaga as fotos que nem o rascunho nem o histórico usam (depois de "Novo", excluir registro, ao abrir).
+  const limparFotos = useCallback(() => limparFotosOrfas(fotosReferenciadas(Dref.current, registros())), []);
   const setEu = useCallback((nome) => { if (nome) store.set('eu', nome); else store.del('eu'); setEuState(nome || ''); }, []);
 
   const valor = useMemo(() => ({
-    dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu,
+    dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu, limparFotos,
     aviso, toast, mensagem, setMensagem, mapa, setMapa,
-  }), [dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu, aviso, toast, mensagem, mapa]);
+  }), [dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu, limparFotos, aviso, toast, mensagem, mapa]);
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }

@@ -4,12 +4,17 @@ import { AdicionarPessoa, TagOrigem, useAdicionar } from '../componentes/Adicion
 import { Area, Sp } from '../componentes/campos.jsx';
 import { ROTULO_ST } from '../lib/constantes.js';
 import { pessoasDoEnc } from '../lib/efetivo.js';
-import { preencherEquipe } from '../lib/rascunho.js';
+import { marcarPresencaPPU, preencherEquipe } from '../lib/rascunho.js';
+import { Fotos } from '../componentes/Fotos.jsx';
 import { cap, clone, dataBR, norm } from '../lib/texto.js';
 
-function Pessoa({ p, j }) {
+/** Uma pessoa da lista de presença. No PPU (`ppu`), a falta pede também onde a pessoa deveria estar (TAG). */
+export function Pessoa({ p, j, ppu }) {
   const { mudar } = useApp();
-  const marcar = (st) => mudar((d) => { const x = d.pessoas[j]; x.status = st; if (st !== 'falta') x.just = ''; });
+  const marcar = (st) => mudar((d) => {
+    if (ppu) { marcarPresencaPPU(d, j, st); return; }
+    const x = d.pessoas[j]; x.status = st; if (st !== 'falta') x.just = '';
+  });
   return (
     <div className="pessoa">
       <div><div className="nome">{p.nome}<TagOrigem p={p} /></div><div className="info">{cap(p.funcao)}{p.frente ? ' · ' + cap(p.frente) : ''}</div></div>
@@ -23,6 +28,13 @@ function Pessoa({ p, j }) {
         <div className="just">
           <input placeholder="Justificativa da falta" value={p.just} onChange={(e) => { const val = e.target.value; mudar((d) => { d.pessoas[j].just = val; }); }} />
           <button type="button" className="btn min" onClick={() => mudar((d) => { d.pessoas[j].just = 'Sem justificativa'; })}>Sem justificativa</button>
+        </div>
+      )}
+      {ppu && p.status === 'falta' && (
+        <div className="just deveria">
+          <label>Onde deveria estar</label>
+          <input list="tagsDoDia" placeholder="Onde deveria estar (TAG)" value={p.deveria || ''}
+            onChange={(e) => { const val = e.target.value; mudar((d) => { d.pessoas[j].deveria = val; }); }} />
         </div>
       )}
     </div>
@@ -75,6 +87,7 @@ export function FormPresenca() {
       ) : (
         <section className="card"><h2>Observações</h2><Area rot="Observações (opcional)" k="obs" /></section>
       )}
+      <section className="card"><h2>📸 Fotos</h2><Fotos caminho="anexos" tag="" /></section>
     </>
   );
 }
