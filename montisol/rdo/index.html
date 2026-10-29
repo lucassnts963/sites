@@ -7,33 +7,10 @@
 <title>RDO de campo — Montisol | Trocador de Calor</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icone.svg" type="image/svg+xml">
-<link rel="stylesheet" href="app.css">
+  <script type="module" crossorigin src="./assets/app.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/app.css">
 </head>
 <body>
-  <header class="topo">
-    <div>
-      <b>RDO de campo</b>
-      <small>Montisol · Trocador de Calor · Hydro Alunorte</small>
-    </div>
-    <span class="aviso-dados" id="avisoDados" hidden>dados de exemplo</span>
-  </header>
-
-  <main id="tela"></main>
-
-  <nav class="abas" id="abas">
-    <button data-tela="lancar" class="on">📝<span>Lançar</span></button>
-    <button data-tela="pesquisar">🔎<span>Pesquisar</span></button>
-    <button data-tela="historico">🗂️<span>Histórico</span></button>
-    <button data-tela="config">⚙️<span>Config</span></button>
-  </nav>
-
-  <section id="mapa" class="mapa" hidden></section>
-  <dialog id="dlg"><div id="dlgCorpo"></div></dialog>
-  <div id="toast"></div>
-  <input type="file" id="arquivo" hidden>
-
-  <script src="mapa.js"></script>
-  <script src="app.js"></script>
-  <script>if ("serviceWorker" in navigator) navigator.serviceWorker.register("../sw.js").catch(function () {});</script>
+  <div id="raiz"></div>
 </body>
 </html>
