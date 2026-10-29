@@ -6,6 +6,8 @@ import { MOD_TXT, VERSAO } from '../lib/constantes.js';
 import { mensagem } from '../lib/mensagens.js';
 import { duplicarParaHoje } from '../lib/rascunho.js';
 import { restaurarBackup, store } from '../lib/store.js';
+import { removerTurnosDoLancamento, tagsComTurnos, turnosDaTag } from '../lib/passagem.js';
+import { TabelaTurnos } from '../componentes/TabelaTurnos.jsx';
 import { clone, dataBR, hoje } from '../lib/texto.js';
 
 function resumoRegistro(r) {
@@ -16,6 +18,7 @@ function resumoRegistro(r) {
 
 export function Historico({ irPara }) {
   const { regs, atualizarRegistros, definirD, setMensagem, toast, limparFotos } = useApp();
+  const tags = tagsComTurnos().sort();
 
   const editar = (r) => {
     if (!confirm('Abrir este registro para editar? O rascunho atual será substituído.')) return;
@@ -28,7 +31,7 @@ export function Historico({ irPara }) {
   };
   const excluir = (r) => {
     if (!confirm('Excluir este registro do aparelho?')) return;
-    store.set('registros', regs.filter((x) => x.id !== r.id)); atualizarRegistros(); limparFotos();
+    store.set('registros', regs.filter((x) => x.id !== r.id)); removerTurnosDoLancamento(r); atualizarRegistros(); limparFotos();
   };
   const exportar = async () => toast(await compartilharArquivo(`rdo-backup-${hoje()}.json`,
     JSON.stringify({ versao: VERSAO, exportadoEm: new Date().toISOString(), registros: regs }, null, 1), 'application/json'));
@@ -47,6 +50,10 @@ export function Historico({ irPara }) {
           <button type="button" className="btn min" onClick={importar}>⬆ Restaurar</button></div>
         <p className="dim pequeno">Fica só neste aparelho. Faça backup de vez em quando (o backup leva os textos; as fotos ficam no aparelho).</p>
       </section>
+      {tags.length > 0 && <section className="card"><h2 className="sem-margem">📈 Turno a turno por TAG</h2>
+        <p className="dim pequeno">Inclui os turnos recebidos nas passagens dos outros encarregados.</p>
+        {tags.map((t) => <details key={t}><summary><b>{t}</b> · {turnosDaTag(t).length} turno(s)</summary><TabelaTurnos turnos={turnosDaTag(t)} /></details>)}
+      </section>}
       {regs.length ? regs.map((r) => (
         <div className="card reg" key={r.id}>
           <div><b>{dataBR(r.data)} · {r.turno || '—'} · {MOD_TXT[r.modalidade] || r.modalidade}</b>

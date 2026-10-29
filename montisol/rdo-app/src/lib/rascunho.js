@@ -3,7 +3,7 @@ import { modDe, modalidadeDoEnc, pessoaDe, pessoasDoEnc, statusPadrao, turnoDoEn
 import { clone, hoje, norm, normTag, uid } from './texto.js';
 
 const horVazio = () => ({ ddsIni: '', ddsFim: '', lib: '', ini: '', fim: '' });
-const prodVazio = () => ({ total: '', mapeados: '', desob: '', pend: '', tamp: '' });
+const prodVazio = () => ({ total: '', mapeados: '', desob: '', pend: '', tamp: '', acum: '' });
 const ativVazio = () => ({ servico: '', situacao: '', pend: '', prox: '' });
 const fotosVazio = () => ({ antes: '', depois: '' });
 export const paradaVazia = () => ({ resp: '', motivo: '', ini: '', fim: '', impacto: '' });
@@ -15,7 +15,7 @@ export function novoEq(EF, D) {
   else if (D && D.encarregado) {
     equipe = pessoasDoEnc(EF, D.encarregado).filter((c) => modDe(EF, c.frente) === 'ppu' && statusPadrao(c) === 'presente').map((c) => pessoaDe(c, 'equipe'));
   }
-  return { uid: uid(), tag: '', desenho: '', aqs: '', aqsRef: '', equipe, hor: horVazio(), prod: prodVazio(), paradas: [], ativ: ativVazio(), fotos: fotosVazio(), anexos: [], mapaInicio: null };
+  return { uid: uid(), tag: '', desenho: '', aqs: '', aqsRef: '', equipe, hor: horVazio(), prod: prodVazio(), paradas: [], ativ: ativVazio(), fotos: fotosVazio(), anexos: [] };
 }
 
 /** PPU: marca a presença da pessoa j. Quem não está presente sai das equipes dos equipamentos;
@@ -46,7 +46,6 @@ export function completarPelaTag(eq, TROC, CAT) {
     const total = (t && t.tubos) || (t && d && d.tubos) || '';
     if (total) eq.prod.total = String(total);
   }
-  eq.mapaInicio = null;
 }
 
 export function novoDraft(EF, eu) {
@@ -94,7 +93,7 @@ export function duplicarParaHoje(r) {
   D.id = uid(); D.data = hoje(); D.criadoEm = new Date().toISOString();
   delete D.salvoEm; delete D.enviadoEm;
   D.anexos = [];
-  for (const eq of D.equipamentos || []) { eq.uid = uid(); eq.hor = horVazio(); eq.paradas = []; eq.fotos = fotosVazio(); eq.anexos = []; eq.prod.desob = ''; eq.mapaInicio = null; }
+  for (const eq of D.equipamentos || []) { eq.uid = uid(); eq.hor = horVazio(); eq.paradas = []; eq.fotos = fotosVazio(); eq.anexos = []; eq.prod.desob = ''; eq.prod.acum = ''; }
   return D;
 }
 
@@ -102,13 +101,4 @@ export function duplicarParaHoje(r) {
 export function copiarApontamento(eq, e) {
   Object.assign(eq, { tag: eq.tag || e.tag, desenho: e.desenho, aqs: e.aqs, aqsRef: e.aqsRef, equipe: clone(e.equipe || []),
     prod: { total: e.prod.total, mapeados: e.prod.mapeados, desob: '', pend: e.prod.pend, tamp: e.prod.tamp }, ativ: clone(e.ativ) });
-}
-
-/** Preenche a produção a partir da contagem do mapa; desobstruídos no turno = agora − início do lançamento. */
-export function aplicarContagem(eq, c) {
-  if (c.total !== '') eq.prod.total = String(c.total);
-  eq.prod.mapeados = String(c.obstruido + c.desobstruido);
-  eq.prod.desob = String(Math.max(0, c.desobstruido - ((eq.mapaInicio && eq.mapaInicio.desobstruido) || 0)));
-  eq.prod.pend = String(c.obstruido);
-  eq.prod.tamp = String(c.tamponado);
 }

@@ -67,6 +67,14 @@ O app novo reaproveita `dados/` e `desenhos/`.
   e **Usar números do mapa** preenche a produção. Para devolver o mapa:
   **Enviar imagem** (PNG com as contagens, o WhatsApp mostra como foto), **Enviar arquivo** (documento `.html` com o SVG dentro, para o painel) ou **⬇ SVG** (baixa o arquivo).
   O WhatsApp não envia `.svg` (recebe como foto e não consegue abrir), por isso o SVG vai dentro do `.html`. O app importa de volta tanto `.svg` quanto `.html`.
+- **Controle de produção (PPU):** os dados da **manutenção da TAG** (total de tubos e total obstruídos/escopo) são preenchidos uma vez,
+  ficam no aparelho e voltam em todo lançamento seguinte (editáveis; "Nova manutenção" encerra a atual e limpa o espelho).
+  Desobstruídos no turno, acumulado, pendentes e tamponados **vêm do mapeamento**: no turno contam só os tubos marcados neste lançamento.
+  Sem mapa marcado, os números são digitados e o acumulado soma os turnos anteriores.
+- **Turno a turno:** ao salvar/enviar, cada equipamento grava o registro do turno (data, turno, encarregado, desobstruídos, acumulado, pendentes).
+  Aparece no equipamento e em Histórico › Turno a turno por TAG.
+- **Passagem de turno:** **📤 Passar turno** gera um `.html` (abre no navegador com o espelho e a tabela de turnos) com os dados dentro;
+  o próximo encarregado toca **📥 Receber passagem** (ou importa no editor do espelho) e o app junta tudo. Ver "Sincronização entre os turnos".
 - **Presença no PPU:** a equipe do encarregado entra numa lista de presença (Presente, Falta, Férias, Afastado). Quem falta sai da equipe do equipamento,
   e a falta pede justificativa e **onde deveria estar** (TAG; já vem com a TAG em que a pessoa estava). Vai na mensagem: no bloco do equipamento e num bloco de presença no fim.
 - **Fotos com legenda:** por equipamento (PPU) e por lançamento (extra/6x4), com Antes/Durante/Depois e legenda. Ficam no aparelho (IndexedDB; o backup JSON leva só os textos).
@@ -82,6 +90,29 @@ O app novo reaproveita `dados/` e `desenhos/`.
 - **Pesquisar:** busca por colaborador (equipe, encarregado, supervisor e os apontamentos feitos naquele aparelho).
 - **Sem sinal:** depois do primeiro acesso com internet, o app abre offline (rede primeiro, cache de reserva). Lançamentos e histórico são locais de qualquer forma.
 - **Histórico:** local, com ver, editar, duplicar para hoje, backup e restauração em arquivo JSON.
+
+## Sincronização entre os turnos (PPU: um encarregado por turno, cada um no seu celular)
+
+O site é estático e cada celular guarda os seus dados. O que precisa ser igual nos 3 aparelhos é o **espelho** (status de cada tubo),
+os **dados da manutenção** e o **histórico turno a turno**. O formato foi feito para juntar sem conflito:
+
+- cada tubo guarda quando e em qual lançamento foi marcado; ao juntar, vale a marcação mais recente de cada tubo
+  (com relógio lógico: um celular com hora atrasada não perde para marcações antigas). A ordem das passagens não importa e repetir não duplica;
+- desobstruídos no turno = tubos verdes marcados naquele lançamento, então a passagem pode chegar antes ou depois sem mudar a produção de ninguém;
+- manutenção: vale a edição mais recente; duas manutenções abertas da mesma TAG (abertas em celulares diferentes) viram uma;
+- turnos: cada lançamento tem o seu registro (id fixo); juntar = unir as listas.
+
+**Hoje (sem servidor):** o arquivo de passagem pelo grupo do WhatsApp. Funciona sem sinal na planta, mas depende de cada encarregado enviar e receber.
+
+**Próximo passo (decisão do Lucas):** o mesmo formato sincronizando sozinho quando houver internet (fila no aparelho; envia e recebe ao abrir/salvar):
+
+| Opção | Como | Prós | Contras |
+|---|---|---|---|
+| Google Planilha + Apps Script | o app manda os turnos e as marcações para um script publicado na conta Google; a planilha guarda | grátis, sem servidor para manter, a planilha já serve para conferir o BMM/medição | link do script funciona como senha; alguns segundos por envio |
+| n8n na VPS (webhook) | dois webhooks (enviar/receber) guardando os registros | fica na infraestrutura do BeaconOS, integra com o vault/Telegram | precisa de endereço público com HTTPS e de manter a VPS no ar |
+| Firebase/Supabase | banco com sincronização pronta | tempo real, offline pronto | mais uma conta/serviço e dependência no app |
+
+Recomendação: **Google Planilha + Apps Script** (menor custo de manutenção e a planilha vira o histórico da medição).
 
 ## Mexer no RDO
 

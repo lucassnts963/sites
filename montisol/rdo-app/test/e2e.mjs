@@ -167,8 +167,12 @@ try {
   await clicar('Fechar');
   await page.waitForFunction(() => !document.querySelector('.mapa'));
   ok((await texto()).includes('🟢 3'), 'contagem do mapa aparece no equipamento');
-  await clicar('Usar números do mapa');
-  ok(await page.$eval('input[type="number"]', (i) => i.value) === '894', 'produção preenchida pelo mapa');
+  ok(await page.$eval('.prod-mapa', (d) => d.innerText.replace(/\s+/g, ' ')).then((t) => /Desobstruídos no turno 3 Acumulado 3/.test(t)), 'produção do turno vem do mapa (3 no turno, 3 acumulados)');
+  // dados da manutenção: preenchidos uma vez
+  const [inTotal, inObst] = await page.$$('.manut input[type="number"]');
+  ok(await inTotal.evaluate((i) => i.value) === '894', 'manutenção: total de tubos já vem da TAG');
+  await inObst.type('300');
+  ok(await espera('de 300'), 'manutenção: escopo de 300 obstruídos aparece no acumulado');
 
   await clicar('Ver');
   await page.waitForSelector('dialog[open] pre.msg');
@@ -182,6 +186,52 @@ try {
   ok((await ultimoEnvio(4)).arquivos.length === 1, 'botão de fotos envia as fotos do lançamento');
   await clicar('WhatsApp', '.acoes button');
   ok(String(await page.evaluate(() => window.__aberto)).startsWith('https://wa.me/?text='), 'WhatsApp aberto com a mensagem');
+  ok(decodeURIComponent(await page.evaluate(() => window.__aberto)).includes('• Desobstruídos acumulados na manutenção: 3'), 'mensagem com o acumulado da manutenção');
+  ok(await espera('Turno a turno (1)'), 'turno registrado no histórico da TAG ao enviar');
+
+  // passagem de turno: ADM → Tarde (outro aparelho)
+  await clicar('Passar turno');
+  const envPass = await ultimoEnvio(5);
+  const pass = envPass.arquivos[0];
+  ok(pass.tipo === 'text/html' && pass.conteudo.includes('id="rdo-passagem"') && envPass.text.includes('Passagem de turno – HE 41A-01A'), `passagem gerada (${pass.nome})`);
+  const ARQ_PASS = path.join(tmp, pass.nome);
+  fs.writeFileSync(ARQ_PASS, pass.conteudo);
+  {
+    const ctx = await browser.createBrowserContext();
+    const p2 = await ctx.newPage();
+    await p2.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    p2.on('dialog', (d) => d.accept());
+    p2.on('pageerror', (e) => erros.push('aparelho 2: ' + e.message));
+    await p2.goto(URL_APP, { waitUntil: 'networkidle0' });
+    await p2.waitForSelector('select');
+    const txt2 = () => p2.evaluate(() => document.body.innerText);
+    const clicar2 = async (t) => { const h = await p2.waitForFunction((x) => [...document.querySelectorAll('button')].find((b) => b.textContent.includes(x) && !b.disabled), {}, t); await h.asElement().evaluate((b) => b.click()); };
+    await p2.select('select', 'ENCARREGADO PPU EXEMPLO');
+    await (await p2.$('input[list="listaTags"]')).type('HE 41A-01A');
+    const [ch] = await Promise.all([p2.waitForFileChooser(), clicar2('Receber passagem')]);
+    await ch.accept([ARQ_PASS]);
+    await p2.waitForFunction(() => document.body.innerText.includes('Passagem de ENCARREGADO PPU EXEMPLO'));
+    ok(true, 'aparelho 2: passagem recebida');
+    const v2 = await p2.$$eval('.manut input[type="number"]', (l) => l.map((i) => i.value));
+    ok(v2[0] === '894' && v2[1] === '300', `aparelho 2: total e escopo recuperados (${v2})`);
+    const prod2 = await p2.$eval('.prod-mapa', (d) => d.innerText.replace(/\s+/g, ' '));
+    ok(/Desobstruídos no turno 0 Acumulado 3 de 300/.test(prod2), `aparelho 2: turno começa em 0 com 3 acumulados (${prod2})`);
+    ok((await txt2()).includes('Turno a turno (1)'), 'aparelho 2: histórico traz o turno do ADM');
+    await clicar2('Mapear espelho');
+    await p2.waitForSelector('.mapa-main circle[data-id]');
+    const verdes = await p2.$$eval('.mapa-main circle[data-id]', (cs) => cs.filter((c) => c.getAttribute('fill') === '#16876a').length);
+    ok(verdes === 3, `aparelho 2: espelho abre com os 3 tubos do ADM (${verdes})`);
+    for (const k of [5, 6]) { const c = (await p2.$$('.mapa-main circle[data-id]'))[k * 40]; await c.click(); }
+    await clicar2('Fechar');
+    await p2.waitForFunction(() => !document.querySelector('.mapa'));
+    const prod3 = await p2.$eval('.prod-mapa', (d) => d.innerText.replace(/\s+/g, ' '));
+    ok(/Desobstruídos no turno 2 Acumulado 5 de 300/.test(prod3), `aparelho 2: turno da tarde conta só os 2 dele (${prod3})`);
+    if (capturas) {
+      await p2.$eval('.manut', (el) => { el.scrollIntoView(); window.scrollBy(0, -130); });
+      await p2.screenshot({ path: path.join(capturas, '6-aparelho2.png') });
+    }
+    await ctx.close();
+  }
 
   // histórico (o antigo + o novo)
   await clicar('Histórico', '.abas button');

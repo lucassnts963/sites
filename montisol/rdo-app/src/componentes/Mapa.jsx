@@ -5,7 +5,7 @@ import { contar, DEFAULT_STATUS, parseSheet } from '../lib/mapa.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 
-export function Mapa({ sheet, estadoInicial, statuses, titulo, onChange, onClose, onEnviarImagem, onEnviarArquivo, onBaixarSvg }) {
+export function Mapa({ sheet, estadoInicial, statuses, titulo, onChange, onClose, onEnviarImagem, onEnviarArquivo, onBaixarSvg, aoImportar }) {
   const lista = statuses || DEFAULT_STATUS;
   const host = useRef(null);
   const est = useRef({ ...(estadoInicial || {}) });
@@ -40,7 +40,7 @@ export function Mapa({ sheet, estadoInicial, statuses, titulo, onChange, onClose
     const applyVb = () => svgEl.setAttribute('viewBox', S.current.vb.join(' '));
     S.current.vb = fitVb(); applyVb();
 
-    const atualizar = () => { setC(contar(estado, sheet)); if (cbs.current.onChange) cbs.current.onChange({ ...estado }); };
+    const atualizar = (opcoes) => { setC(contar(estado, sheet)); if (cbs.current.onChange) cbs.current.onChange({ ...estado }, opcoes); };
     function setMany(ids, st) {
       const prev = ids.map((id) => [id, estado[id] || '']);
       let n = 0;
@@ -120,12 +120,13 @@ export function Mapa({ sheet, estadoInicial, statuses, titulo, onChange, onClose
         for (const [id, st] of prev) { if (st) estado[id] = st; else delete estado[id]; paint(circles.get(id), st); }
         atualizar();
       },
+      // troca o estado inteiro (importação): as mudanças não contam como marcação deste turno
       substituir: (novo) => {
         for (const id of Object.keys(estado)) delete estado[id];
         Object.assign(estado, novo);
         for (const [id, el] of circles) paint(el, estado[id]);
         S.current.undo = [];
-        atualizar();
+        atualizar({ importado: true });
       },
     };
     document.body.classList.add('mapa-aberto');
@@ -139,7 +140,11 @@ export function Mapa({ sheet, estadoInicial, statuses, titulo, onChange, onClose
     e.target.value = '';
     if (!f) return;
     try {
-      const lido = parseSheet(await f.text());
+      const texto = await f.text();
+      // passagem de turno: junta com o que já está marcado (aoImportar devolve o estado juntado)
+      const juntado = aoImportar ? aoImportar(texto) : null;
+      if (juntado) { api.current.substituir(juntado); return; }
+      const lido = parseSheet(texto);
       if (lido.sheet.tubes.length !== sheet.tubes.length && !confirm(`O SVG tem ${lido.sheet.tubes.length} tubos e o desenho atual ${sheet.tubes.length}. Importar mesmo assim?`)) return;
       api.current.substituir(lido.estado);
     } catch (x) { alert('Não foi possível ler o SVG: ' + x.message); }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { encarregados, modalidadeDoEnc, origemDe, statusPadrao, turnoDoEnc } from '../src/lib/efetivo.js';
 import { contar, exportSvg } from '../src/lib/mapa.js';
-import { aplicarContagem, duplicarParaHoje, garantirConteudo, migrar, novoDraft } from '../src/lib/rascunho.js';
+import { duplicarParaHoje, garantirConteudo, migrar, novoDraft } from '../src/lib/rascunho.js';
 import EF from '../../dados/efetivo.exemplo.json';
 
 describe('efetivo', () => {
@@ -52,11 +52,7 @@ describe('rascunho', () => {
     expect(D.enviadoEm).toBeUndefined();
     expect(D.equipamentos[0]).toMatchObject({ paradas: [], prod: { desob: '', total: '10' }, fotos: { antes: '', depois: '' } });
   });
-  it('usar números do mapa desconta o que já estava desobstruído', () => {
-    const eq = { prod: {}, mapaInicio: { desobstruido: 10 } };
-    aplicarContagem(eq, { total: 894, desobstruido: 25, obstruido: 5, tamponado: 2 });
-    expect(eq.prod).toEqual({ total: '894', mapeados: '30', desob: '15', pend: '5', tamp: '2' });
-  });
+
 });
 
 describe('mapa', () => {

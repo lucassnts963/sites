@@ -150,3 +150,19 @@ label.check input { width: 22px; min-height: 22px; }
 .mapa-row .btn.pri { flex: 1; }
 .pessoa .just.deveria { flex-direction: column; gap: 0; }
 .pessoa .just.deveria label { margin-top: 0; }
+
+/* ---- v0.4: manutenção por TAG, produção do mapa, turno a turno */
+.manut { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--yellow); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
+.manut .grid2 label { margin-top: 6px; }
+.prod-mapa { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
+@media (min-width: 640px) { .prod-mapa { grid-template-columns: repeat(4, 1fr); } }
+.prod-mapa > div { background: #1a2620; border: 1px solid #234d3f; border-radius: 10px; padding: 8px 10px; display: grid; gap: 2px; }
+.prod-mapa small { color: var(--dim); font-size: 12px; }
+.prod-mapa b { font-size: 22px; color: #9fe3c9; }
+.prod-mapa b small { font-size: 13px; font-weight: 400; }
+.tabela-rolagem { overflow-x: auto; }
+table.turnos { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 6px; }
+table.turnos th, table.turnos td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+table.turnos th { color: var(--dim); font-weight: 600; }
+table.turnos tr.este td { background: #2e2226; }
+input[disabled] { opacity: .65; }
