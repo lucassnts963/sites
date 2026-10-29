@@ -15,7 +15,7 @@ function resumoRegistro(r) {
 }
 
 export function Historico({ irPara }) {
-  const { regs, atualizarRegistros, definirD, setMensagem, toast } = useApp();
+  const { regs, atualizarRegistros, definirD, setMensagem, toast, limparFotos } = useApp();
 
   const editar = (r) => {
     if (!confirm('Abrir este registro para editar? O rascunho atual será substituído.')) return;
@@ -28,7 +28,7 @@ export function Historico({ irPara }) {
   };
   const excluir = (r) => {
     if (!confirm('Excluir este registro do aparelho?')) return;
-    store.set('registros', regs.filter((x) => x.id !== r.id)); atualizarRegistros();
+    store.set('registros', regs.filter((x) => x.id !== r.id)); atualizarRegistros(); limparFotos();
   };
   const exportar = async () => toast(await compartilharArquivo(`rdo-backup-${hoje()}.json`,
     JSON.stringify({ versao: VERSAO, exportadoEm: new Date().toISOString(), registros: regs }, null, 1), 'application/json'));
@@ -45,7 +45,7 @@ export function Historico({ irPara }) {
         <div className="linha topo-card"><h2>Histórico ({regs.length})</h2><Sp />
           <button type="button" className="btn min" onClick={exportar}>⬇ Backup</button>
           <button type="button" className="btn min" onClick={importar}>⬆ Restaurar</button></div>
-        <p className="dim pequeno">Fica só neste aparelho. Faça backup de vez em quando.</p>
+        <p className="dim pequeno">Fica só neste aparelho. Faça backup de vez em quando (o backup leva os textos; as fotos ficam no aparelho).</p>
       </section>
       {regs.length ? regs.map((r) => (
         <div className="card reg" key={r.id}>

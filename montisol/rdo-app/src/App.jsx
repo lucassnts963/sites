@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from './estado.jsx';
 import { Mapa } from './componentes/Mapa.jsx';
-import { compartilharArquivo, copiar, enviarWhats } from './lib/arquivos.js';
+import { baixar, copiar, enviarWhats } from './lib/arquivos.js';
+import { legendaMapa, mapaHtml, mapaPng } from './lib/mapaImagem.js';
+import { useEnvio } from './componentes/useEnvio.js';
 import { MOD_TXT } from './lib/constantes.js';
 import { contar, exportSvg } from './lib/mapa.js';
 import { chaveMapa, store } from './lib/store.js';
@@ -53,20 +55,33 @@ function MensagemDialog() {
 
 /** Abre o editor do espelho do equipamento escolhido e guarda o mapa por TAG + desenho. */
 function EditorMapa() {
-  const { D, dados, mapa, setMapa, toast } = useApp();
+  const { D, dados, mapa, setMapa } = useApp();
+  const enviar = useEnvio();
   if (!mapa) return null;
   const eq = D.equipamentos[mapa.i];
-  const exportar = async (est) => {
+  const nome = `mapeamento-${slug(eq.tag)}-${D.data}-${slug(D.turno || 'turno')}`;
+  const gerar = (est) => {
     const c = contar(est, mapa.sheet);
-    const turno = Math.max(0, c.desobstruido - ((eq.mapaInicio && eq.mapaInicio.desobstruido) || 0));
-    const svg = exportSvg(mapa.sheet, est, { trocador: eq.tag, data: D.data, resp: D.encarregado, desenho: eq.desenho, desobstruidosTurno: turno }, dados.CAT.status);
-    toast(await compartilharArquivo(`mapeamento-${slug(eq.tag)}-${D.data}-${slug(D.turno || 'turno')}.svg`, svg, 'image/svg+xml'));
+    const meta = { trocador: eq.tag, data: D.data, turno: D.turno, resp: D.encarregado, desenho: eq.desenho, desobstruidosTurno: Math.max(0, c.desobstruido - ((eq.mapaInicio && eq.mapaInicio.desobstruido) || 0)) };
+    return { c, meta, svg: exportSvg(mapa.sheet, est, meta, dados.CAT.status) };
   };
+  const chave = (tipo, est) => tipo + JSON.stringify(est);
+  // O WhatsApp não envia SVG (tenta abrir como foto). Imagem: PNG. Arquivo: .html com o SVG dentro (vai como documento).
+  const enviarImagem = (est) => enviar(chave('png', est), async () => {
+    const { c, meta, svg } = gerar(est);
+    const png = await mapaPng(svg, mapa.sheet, meta, c, dados.CAT.status);
+    return { files: [new File([png], nome + '.png', { type: 'image/png' })], text: legendaMapa(meta, c) };
+  });
+  const enviarArquivo = (est) => enviar(chave('html', est), async () => {
+    const { c, meta, svg } = gerar(est);
+    return { files: [new File([mapaHtml(svg, meta, c)], nome + '.html', { type: 'text/html' })], text: legendaMapa(meta, c) };
+  });
+  const baixarSvg = (est) => baixar(new File([gerar(est).svg], nome + '.svg', { type: 'image/svg+xml' }));
   return (
     <Mapa sheet={mapa.sheet} estadoInicial={mapa.estado} statuses={dados.CAT.status} titulo={eq.tag}
       onChange={(est) => store.set(chaveMapa(eq), est)}
       onClose={(est) => { store.set(chaveMapa(eq), est); setMapa(null); }}
-      onExport={exportar} />
+      onEnviarImagem={enviarImagem} onEnviarArquivo={enviarArquivo} onBaixarSvg={baixarSvg} />
   );
 }
 

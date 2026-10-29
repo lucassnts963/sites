@@ -135,3 +135,18 @@ label.check input { width: 22px; min-height: 22px; }
 .aviso-dados { white-space: nowrap; font-size: 11px; padding: 3px 8px; }
 .topo b { white-space: nowrap; }
 .reg > .tag { align-self: start; }
+
+/* ---- v0.3: fotos, presença PPU, lista de equipamentos */
+.fotos { display: grid; gap: 10px; margin-top: 6px; }
+.foto { display: grid; grid-template-columns: 96px 1fr; gap: 10px; align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px; }
+.foto img, .foto .sem-img { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; background: #0f1013; }
+.foto .sem-img { display: grid; place-items: center; font-size: 11px; color: var(--dim); text-align: center; }
+.foto-campos { display: grid; gap: 6px; min-width: 0; }
+.foto-campos .linha { margin-top: 0; }
+.seg.mini button { min-height: 34px; padding: 4px; font-size: 13px; }
+.acoes .btn[title] { flex: 0 0 auto; }
+.lista-equip { padding-left: 18px; font-size: 14px; }
+.lista-equip li { margin: 4px 0; }
+.mapa-row .btn.pri { flex: 1; }
+.pessoa .just.deveria { flex-direction: column; gap: 0; }
+.pessoa .just.deveria label { margin-top: 0; }

@@ -64,7 +64,15 @@ O app novo reaproveita `dados/` e `desenhos/`.
 
 - **PPU:** um bloco por equipamento (TAG) com equipe que trabalhou, AQS, horários, produção, paradas (tempo calculado, resumo Hydro/Montisol),
   atividades e fotos. O **DDS** tem início e término e o app calcula o tempo. **Puxar anterior** copia o último apontamento da TAG. **Mapear espelho** abre o desenho para marcar os tubos
-  e **Usar números do mapa** preenche a produção; **Enviar SVG** devolve o desenho atualizado (compartilhar no celular ou baixar).
+  e **Usar números do mapa** preenche a produção. Para devolver o mapa:
+  **Enviar imagem** (PNG com as contagens, o WhatsApp mostra como foto), **Enviar arquivo** (documento `.html` com o SVG dentro, para o painel) ou **⬇ SVG** (baixa o arquivo).
+  O WhatsApp não envia `.svg` (recebe como foto e não consegue abrir), por isso o SVG vai dentro do `.html`. O app importa de volta tanto `.svg` quanto `.html`.
+- **Presença no PPU:** a equipe do encarregado entra numa lista de presença (Presente, Falta, Férias, Afastado). Quem falta sai da equipe do equipamento,
+  e a falta pede justificativa e **onde deveria estar** (TAG; já vem com a TAG em que a pessoa estava). Vai na mensagem: no bloco do equipamento e num bloco de presença no fim.
+- **Fotos com legenda:** por equipamento (PPU) e por lançamento (extra/6x4), com Antes/Durante/Depois e legenda. Ficam no aparelho (IndexedDB; o backup JSON leva só os textos).
+  Ao enviar, a legenda é gravada na foto (faixa embaixo com TAG, data, turno e encarregado) e vai também como texto. **📷** na barra envia todas as fotos do lançamento.
+- **Lista de equipamentos:** Config › Importar lista (CSV do Excel com `tag; tipo; area; desenho; tubos`, ou JSON como `trocadores.json`; há um modelo CSV).
+  Fica no aparelho e soma com `dados/trocadores.json`; a TAG escolhida preenche desenho, total de tubos, tipo e área.
 - **Extra e 6x4:** ao escolher o encarregado, entra a equipe toda; cada pessoa recebe Presente, Falta, Férias ou Afastado.
   Falta exige justificativa ou o botão **Sem justificativa**. Extra tem campo de atividades e de OS executadas e canceladas.
 - Dá para **adicionar gente de outra equipe** (busca pelo nome, marcada "outra equipe") e **gente sem cadastro ou de outro contrato**

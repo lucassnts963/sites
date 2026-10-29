@@ -6,7 +6,9 @@ import { Area, Campo, Numero, Seg, Sp } from '../componentes/campos.jsx';
 import { abrirArquivo } from '../lib/arquivos.js';
 import { DESENHOS } from '../lib/constantes.js';
 import { contar, parseSheet } from '../lib/mapa.js';
-import { aplicarContagem, copiarApontamento, novoEq, paradaVazia } from '../lib/rascunho.js';
+import { aplicarContagem, completarPelaTag, copiarApontamento, novoEq, paradaVazia } from '../lib/rascunho.js';
+import { Fotos } from '../componentes/Fotos.jsx';
+import { PresencaPPU } from './PresencaPPU.jsx';
 import { chaveMapa, chaveSvg, store } from '../lib/store.js';
 import { minutos, resumoParadas } from '../lib/tempo.js';
 import { dataBR, norm, normTag } from '../lib/texto.js';
@@ -83,17 +85,13 @@ function Equipamento({ eq, i, pendencias }) {
     toast('Apontamento anterior copiado: ajuste o que mudou');
   };
 
-  const mudarTag = (d) => {
-    const x = d.equipamentos[i];
-    const t = TROC.find((y) => normTag(y.tag) === normTag(x.tag));
-    if (t && !x.desenho) x.desenho = t.desenho;
-    x.mapaInicio = null;
-  };
+  const mudarTag = (d) => completarPelaTag(d.equipamentos[i], TROC, CAT);
+  const troc = TROC.find((y) => normTag(y.tag) === normTag(eq.tag));
 
   const mudarDesenho = async (val) => {
-    if (val !== '__arquivo') { mudar((d) => { d.equipamentos[i].desenho = val; d.equipamentos[i].mapaInicio = null; }); return; }
+    if (val !== '__arquivo') { mudar((d) => { d.equipamentos[i].desenho = val; completarPelaTag(d.equipamentos[i], TROC, CAT); }); return; }
     if (!eq.tag) { toast('Informe a TAG antes de abrir o SVG'); return; }
-    const arq = await abrirArquivo('.svg,image/svg+xml');
+    const arq = await abrirArquivo('.svg,.html,image/svg+xml,text/html');
     if (!arq) return;
     try {
       const lido = parseSheet(arq.texto);
@@ -147,6 +145,7 @@ function Equipamento({ eq, i, pendencias }) {
             </select>
           </div>
         </div>
+        {troc && (troc.tipo || troc.area) && <p className="dim pequeno calc">{[troc.tipo, troc.area].filter(Boolean).join(' · ')}</p>}
         <div className="linha">
           <button type="button" className="btn" onClick={mapear} disabled={!(eq.tag && eq.desenho)}>🗺️ Mapear espelho</button>
           {c ? <span className="kpis"><span>🟢 {c.desobstruido}</span><span>🔴 {c.obstruido}</span><span>⚫ {c.tamponado}</span><span>🟠 {c.furado}</span></span>
@@ -192,7 +191,9 @@ function Equipamento({ eq, i, pendencias }) {
         <Campo rot="Próxima etapa / TAG" k={`${k}.ativ.prox`} />
 
         <h3>📸 5. Registro fotográfico</h3>
-        <div className="grid2"><Campo rot="Antes" k={`${k}.fotos.antes`} placeholder="ex.: 4 fotos no grupo" /><Campo rot="Depois" k={`${k}.fotos.depois`} placeholder="ex.: 4 fotos no grupo" /></div>
+        <Fotos caminho={`${k}.anexos`} tag={eq.tag} />
+        <div className="grid2"><Campo rot="Antes (texto)" k={`${k}.fotos.antes`} placeholder={(eq.anexos || []).length ? 'conta as fotos anexadas' : 'ex.: 4 fotos no grupo'} />
+          <Campo rot="Depois (texto)" k={`${k}.fotos.depois`} placeholder={(eq.anexos || []).length ? 'conta as fotos anexadas' : 'ex.: 4 fotos no grupo'} /></div>
       </>}
     </section>
   );
@@ -200,11 +201,17 @@ function Equipamento({ eq, i, pendencias }) {
 
 export function FormPPU({ erros }) {
   const { dados, D, EF, mudar, regs } = useApp();
-  const tags = [...new Set([...dados.TROC.map((t) => t.tag), ...regs.flatMap((r) => (r.equipamentos || []).map((e) => e.tag)).filter(Boolean)])];
+  const daLista = new Set(dados.TROC.map((t) => normTag(t.tag)));
+  const doHistorico = [...new Set(regs.flatMap((r) => (r.equipamentos || []).map((e) => e.tag)).filter((t) => t && !daLista.has(normTag(t))))];
+  const pendPresenca = erros.filter((e) => D.pessoas.some((p) => e.startsWith(p.nome + ':'))).length;
   const pendDe = (i) => erros.filter((e) => e.startsWith(`Equipamento ${i + 1}:`) || e.startsWith(`Equipamento ${i + 1},`)).length;
   return (
     <>
-      <datalist id="listaTags">{tags.map((t) => <option key={t} value={t} />)}</datalist>
+      <datalist id="listaTags">
+        {dados.TROC.map((t) => <option key={t.tag} value={t.tag}>{[t.tipo, t.area].filter(Boolean).join(' · ')}</option>)}
+        {doHistorico.map((t) => <option key={t} value={t} />)}
+      </datalist>
+      <PresencaPPU pendencias={pendPresenca} />
       {D.equipamentos.map((eq, i) => <Equipamento key={eq.uid || i} eq={eq} i={i} pendencias={pendDe(i)} />)}
       <div className="linha"><button type="button" className="btn" onClick={() => mudar((d) => { d.equipamentos.push(novoEq(EF, d)); })}>➕ Adicionar equipamento</button></div>
     </>
