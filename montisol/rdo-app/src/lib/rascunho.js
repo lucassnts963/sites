@@ -15,7 +15,7 @@ export function novoEq(EF, D) {
   else if (D && D.encarregado) {
     equipe = pessoasDoEnc(EF, D.encarregado).filter((c) => modDe(EF, c.frente) === 'ppu' && statusPadrao(c) === 'presente').map((c) => pessoaDe(c, 'equipe'));
   }
-  return { uid: uid(), tag: '', desenho: '', aqs: '', aqsRef: '', equipe, hor: horVazio(), prod: prodVazio(), paradas: [], ativ: ativVazio(), fotos: fotosVazio(), anexos: [] };
+  return { uid: uid(), tag: '', desenho: '', servico: 'desobstrucao', aqs: '', aqsRef: '', equipe, hor: horVazio(), prod: prodVazio(), paradas: [], ativ: ativVazio(), fotos: fotosVazio(), anexos: [] };
 }
 
 /** PPU: marca a presença da pessoa j. Quem não está presente sai das equipes dos equipamentos;
@@ -51,7 +51,7 @@ export function completarPelaTag(eq, TROC, CAT) {
 export function novoDraft(EF, eu) {
   const mod = (eu && modalidadeDoEnc(EF, eu)) || 'ppu';
   return { id: uid(), modalidade: mod, data: hoje(), turno: eu ? turnoDoEnc(EF, eu, mod) : '', encarregado: eu || '',
-    equipamentos: [], pessoas: [], anexos: [], atividades: '', osExec: '', osCanc: '', obs: '', criadoEm: new Date().toISOString() };
+    inicio: '', termino: '', equipamentos: [], pessoas: [], anexos: [], atividades: '', osExec: '', osCanc: '', obs: '', criadoEm: new Date().toISOString() };
 }
 
 export function preencherEquipe(EF, D) {
@@ -77,6 +77,7 @@ export function migrar(d) {
     eq.ativ = Object.assign(ativVazio(), eq.ativ);
     eq.fotos = Object.assign(fotosVazio(), eq.fotos);
     eq.equipe = eq.equipe || []; eq.paradas = eq.paradas || []; eq.anexos = eq.anexos || [];
+    if (!eq.servico) eq.servico = 'desobstrucao';
     if (!eq.uid) eq.uid = uid();
     const h = eq.hor || (eq.hor = {});
     if (h.dds && !h.ddsIni) h.ddsIni = h.dds;
@@ -91,14 +92,14 @@ export function migrar(d) {
 export function duplicarParaHoje(r) {
   const D = clone(r);
   D.id = uid(); D.data = hoje(); D.criadoEm = new Date().toISOString();
-  delete D.salvoEm; delete D.enviadoEm;
-  D.anexos = [];
+  delete D.salvoEm; delete D.enviadoEm; delete D.envioId; // lançamento novo: novo id de envio para a base
+  D.anexos = []; D.inicio = ''; D.termino = '';
   for (const eq of D.equipamentos || []) { eq.uid = uid(); eq.hor = horVazio(); eq.paradas = []; eq.fotos = fotosVazio(); eq.anexos = []; eq.prod.desob = ''; eq.prod.acum = ''; }
   return D;
 }
 
 /** Aplica no equipamento o último apontamento da mesma TAG (sem horários, paradas e fotos). */
 export function copiarApontamento(eq, e) {
-  Object.assign(eq, { tag: eq.tag || e.tag, desenho: e.desenho, aqs: e.aqs, aqsRef: e.aqsRef, equipe: clone(e.equipe || []),
+  Object.assign(eq, { tag: eq.tag || e.tag, desenho: e.desenho, servico: e.servico || eq.servico, aqs: e.aqs, aqsRef: e.aqsRef, equipe: clone(e.equipe || []),
     prod: { total: e.prod.total, mapeados: e.prod.mapeados, desob: '', pend: e.prod.pend, tamp: e.prod.tamp }, ativ: clone(e.ativ) });
 }

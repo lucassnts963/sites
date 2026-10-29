@@ -8,6 +8,7 @@ import { duplicarParaHoje } from '../lib/rascunho.js';
 import { restaurarBackup, store } from '../lib/store.js';
 import { removerTurnosDoLancamento, tagsComTurnos, turnosDaTag } from '../lib/passagem.js';
 import { TabelaTurnos } from '../componentes/TabelaTurnos.jsx';
+import { StatusBase } from '../componentes/StatusBase.jsx';
 import { clone, dataBR, hoje } from '../lib/texto.js';
 
 function resumoRegistro(r) {
@@ -17,7 +18,7 @@ function resumoRegistro(r) {
 }
 
 export function Historico({ irPara }) {
-  const { regs, atualizarRegistros, definirD, setMensagem, toast, limparFotos } = useApp();
+  const { regs, atualizarRegistros, definirD, setMensagem, toast, limparFotos, enviarParaBase } = useApp();
   const tags = tagsComTurnos().sort();
 
   const editar = (r) => {
@@ -50,7 +51,7 @@ export function Historico({ irPara }) {
           <button type="button" className="btn min" onClick={importar}>⬆ Restaurar</button></div>
         <p className="dim pequeno">Fica só neste aparelho. Faça backup de vez em quando (o backup leva os textos; as fotos ficam no aparelho).</p>
       </section>
-      {tags.length > 0 && <section className="card"><h2 className="sem-margem">📈 Turno a turno por TAG</h2>
+      {tags.length > 0 && <section className="card"><h2 className="sem-margem">Turno a turno por TAG</h2>
         <p className="dim pequeno">Inclui os turnos recebidos nas passagens dos outros encarregados.</p>
         {tags.map((t) => <details key={t}><summary><b>{t}</b> · {turnosDaTag(t).length} turno(s)</summary><TabelaTurnos turnos={turnosDaTag(t)} /></details>)}
       </section>}
@@ -58,10 +59,14 @@ export function Historico({ irPara }) {
         <div className="card reg" key={r.id}>
           <div><b>{dataBR(r.data)} · {r.turno || '—'} · {MOD_TXT[r.modalidade] || r.modalidade}</b>
             <div className="dim pequeno">{r.encarregado} · {resumoRegistro(r)}</div></div>
-          <span className={'tag ' + (r.enviadoEm ? 'ok' : 'outra')}>{r.enviadoEm ? 'enviado' : 'salvo'}</span>
+          <div className="etiquetas">
+            <span className={'tag ' + (r.enviadoEm ? 'ok' : 'outra')}>{r.enviadoEm ? 'WhatsApp: enviado' : 'salvo'}</span>
+            <StatusBase lid={r.id} etiqueta />
+          </div>
           <div className="acoes-reg">
             <button type="button" className="btn min" onClick={() => setMensagem({ msg: mensagem(r), erros: [] })}>👁️ Ver</button>
             <button type="button" className="btn min" onClick={() => editar(r)}>✏️ Editar</button>
+            <button type="button" className="btn min" onClick={() => enviarParaBase(r)} title="Envia (ou reenvia, sem duplicar) para a base">⬆ Base</button>
             <button type="button" className="btn min" onClick={() => duplicar(r)}>⧉ Duplicar p/ hoje</button>
             <button type="button" className="btn min perigo" onClick={() => excluir(r)}>🗑</button>
           </div>

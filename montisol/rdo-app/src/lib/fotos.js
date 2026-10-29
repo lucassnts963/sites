@@ -1,32 +1,13 @@
 /* Fotos do lançamento: ficam no aparelho (IndexedDB; o localStorage não comporta imagens).
    No rascunho fica só a referência: { id, legenda, momento: 'antes' | 'durante' | 'depois' }.
    Ao enviar, a legenda é gravada na própria foto (faixa embaixo), para não se perder no WhatsApp. */
+import { tx as txDb } from './idb.js';
 import { uid } from './texto.js';
 
 export const MOMENTOS = [['antes', 'Antes'], ['durante', 'Durante'], ['depois', 'Depois']];
 const LADO_MAX = 1600;
 
-let dbP = null;
-function db() {
-  if (!dbP) {
-    dbP = new Promise((ok, erro) => {
-      const r = indexedDB.open('montisol-rdo', 1);
-      r.onupgradeneeded = () => r.result.createObjectStore('fotos');
-      r.onsuccess = () => ok(r.result);
-      r.onerror = () => erro(r.error);
-    });
-  }
-  return dbP;
-}
-async function tx(modo, fn) {
-  const d = await db();
-  return new Promise((ok, erro) => {
-    const t = d.transaction('fotos', modo);
-    const res = fn(t.objectStore('fotos'));
-    t.oncomplete = () => ok(res && 'result' in res ? res.result : undefined);
-    t.onerror = () => erro(t.error);
-  });
-}
+const tx = (modo, fn) => txDb('fotos', modo, fn);
 export const lerFoto = (id) => tx('readonly', (s) => s.get(id));
 export const apagarFoto = (id) => tx('readwrite', (s) => { s.delete(id); });
 const idsGuardados = () => tx('readonly', (s) => s.getAllKeys());
@@ -91,15 +72,15 @@ export async function carimbar(blob, legenda, rodape) {
   const faixa = (linhasLeg.length * f * 1.3) + (linhasRod.length * f * 1.05) + (linhasLeg.length || linhasRod.length ? 2 * pad : 0);
   c.width = W; c.height = Math.round(img.height + faixa);
   ctx.drawImage(img, 0, 0);
-  ctx.fillStyle = '#16161a';
+  ctx.fillStyle = '#243185'; // azul marinho da Montisol
   ctx.fillRect(0, img.height, W, faixa);
-  ctx.fillStyle = '#ff7a3d';
+  ctx.fillStyle = '#758aff';
   ctx.fillRect(0, img.height, W, Math.max(3, Math.round(f / 6)));
   ctx.textBaseline = 'top';
   let y = img.height + pad;
   ctx.font = `bold ${f}px system-ui, sans-serif`; ctx.fillStyle = '#ffffff';
   for (const l of linhasLeg) { ctx.fillText(l, pad, y); y += f * 1.3; }
-  ctx.font = `${Math.round(f * 0.8)}px system-ui, sans-serif`; ctx.fillStyle = '#c9c9d4';
+  ctx.font = `${Math.round(f * 0.8)}px system-ui, sans-serif`; ctx.fillStyle = '#d9defa';
   for (const l of linhasRod) { ctx.fillText(l, pad, y); y += f * 1.05; }
   return paraBlob(c, 'image/jpeg', 0.85);
 }

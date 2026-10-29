@@ -91,6 +91,33 @@ O app novo reaproveita `dados/` e `desenhos/`.
 - **Sem sinal:** depois do primeiro acesso com internet, o app abre offline (rede primeiro, cache de reserva). Lançamentos e histórico são locais de qualquer forma.
 - **Histórico:** local, com ver, editar, duplicar para hoje, backup e restauração em arquivo JSON.
 
+## Identidade visual
+
+Segue a identidade da Montisol (`projects/montisol/assets/identidade-visual/tokens.json` no vault): azul marinho `#243185`, azul royal `#2542e6`,
+azul claro `#758aff` e branco; títulos em Montserrat e corpo em Exo 2 (woff2 em `rdo-app/src/fontes`, licença OFL, servidos com o app para funcionar offline).
+Tema claro com texto escuro (legível no sol) e botões de 48 px ou mais. Logos e ícones de linha em `marca/` (cópia dos arquivos oficiais, sem alteração);
+ícone do PWA = logo vertical branco no quadrado azul royal (`marca/pwa-*.png`). Verde e vermelho só onde a cor é informação (presença, mapa dos tubos, WhatsApp).
+
+## Envio para a base (n8n)
+
+**Enviar para a base** (ao lado do WhatsApp) manda o lançamento estruturado para `POST https://n8n.elucas.dev/webhook/montisol-rdo`
+(cabeçalhos `Content-Type: application/json` e `X-RDO-Chave`). O planejamento confere e aprova no n8n; a base de medição só recebe o aprovado.
+
+- **Chave:** digitada uma vez em Ajustes › Envio para a base e guardada só no aparelho (o repositório é público; a chave não vai no código nem no backup).
+  Sem chave, o botão avisa "Peça a chave de envio ao planejamento". **Testar envio** manda `{"versao":1,"teste":true}` e mostra a resposta.
+- **Contrato v1** (`rdo-app/src/lib/contrato.js`, testado campo a campo em `test/contrato.test.js`): `versao`, `id` (uuid fixo do lançamento),
+  `app_versao`, `enviado_em`, `lancamento{…}` e `texto_whatsapp`. Não vão as imagens das fotos (só momento e legenda). O que o app não sabe vai `null`:
+  horas por pessoa (`hn`, `he65`, `he100`, `adn`), números de produção não preenchidos e momento da foto não marcado. `inicio`/`termino`: o informado no
+  cabeçalho; no PPU, se vazio, o primeiro DDS e o último término dos equipamentos. `frente`: a frente do encarregado no efetivo.
+- **Fila offline:** o lançamento entra na fila do aparelho (IndexedDB) e é enviado na hora se houver internet; senão vai ao abrir o app, ao voltar a
+  conexão, ao voltar para a tela e a cada 90 s. Status por lançamento ("enviado em…", "na fila") no lançamento e no Histórico (que também tem **⬆ Base**).
+- **Sem duplicar:** reenviar usa o mesmo `id`. A fila entrega **pelo menos uma vez** (se o envio for interrompido depois de chegar, o mesmo id pode chegar de novo):
+  o fluxo do n8n **precisa deduplicar pelo `id`** e responder `200 {"ok":true,"duplicado":true}`; o app trata isso como enviado.
+- **Respostas:** `200 {"ok":true,"id":"…","status":"pendente"}` ou `200 {"ok":true,"duplicado":true}` = enviado. 401/403 = "chave recusada"; outro erro fica na fila com a mensagem.
+- **CORS:** o app roda em `https://lucassnts963.github.io`; o webhook precisa responder ao preflight (`OPTIONS`) liberando essa origem e os cabeçalhos
+  `Content-Type` e `X-RDO-Chave` (no nó Webhook do n8n: *Allowed Origins (CORS)*). Sem isso o navegador bloqueia e o lançamento fica na fila.
+- Os testes do navegador apontam o app para um webhook local (chave `montisol-rdo:v1:base:url-teste` no localStorage, só nos testes).
+
 ## Sincronização entre os turnos (PPU: um encarregado por turno, cada um no seu celular)
 
 O site é estático e cada celular guarda os seus dados. O que precisa ser igual nos 3 aparelhos é o **espelho** (status de cada tubo),

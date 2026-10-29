@@ -12,6 +12,7 @@ import { FormPresenca } from './FormPresenca.jsx';
 import { arquivosDasFotos, rodapeDe, textoDasFotos } from '../componentes/Fotos.jsx';
 import { useEnvio } from '../componentes/useEnvio.js';
 import { slug } from '../lib/texto.js';
+import { StatusBase } from '../componentes/StatusBase.jsx';
 
 /** Grupos de fotos do lançamento: um por equipamento (PPU) e o do lançamento. */
 const gruposDeFotos = (D) => [
@@ -83,6 +84,11 @@ function Cabecalho() {
           </select>
         </div>
       </div>
+      <div className="grid2">
+        <Campo rot="Início do turno" k="inicio" tipo="time" />
+        <Campo rot="Término do turno" k="termino" tipo="time" />
+      </div>
+      {D.modalidade === 'ppu' && !D.inicio && !D.termino && <p className="dim pequeno calc">Se ficar em branco, vai para a base o primeiro DDS e o último término dos equipamentos.</p>}
       <label>Tipo de equipe</label>
       <Seg k="modalidade" opcoes={[['ppu', 'PPU'], ['extra', 'Extra'], ['6x4', '6x4']]} aoMudar={trocarModalidade} />
     </section>
@@ -90,8 +96,12 @@ function Cabecalho() {
 }
 
 function BarraAcoes({ erros }) {
-  const { D, salvarRegistro, toast, setMensagem } = useApp();
+  const { D, salvarRegistro, toast, setMensagem, enviarParaBase } = useApp();
   const enviar = useEnvio();
+  const base = () => {
+    if (erros.length) { setMensagem({ msg: mensagem(D), erros }); return; }
+    enviarParaBase();
+  };
   const grupos = gruposDeFotos(D);
   const nFotos = grupos.reduce((n, g) => n + g.anexos.length, 0);
   const enviarFotos = () => enviar(JSON.stringify(grupos) + D.data + D.turno, async () => {
@@ -107,10 +117,16 @@ function BarraAcoes({ erros }) {
   };
   return (
     <div className="acoes">
-      <button type="button" className="btn" onClick={() => setMensagem({ msg: mensagem(D), erros })}>👁️ Ver</button>
-      <button type="button" className="btn" onClick={() => { if (salvarRegistro()) toast('Salvo no histórico deste aparelho'); }}>💾 Salvar</button>
-      {nFotos > 0 && <button type="button" className="btn" onClick={enviarFotos} title="Envia as fotos com a legenda gravada">📷 {nFotos}</button>}
-      <button type="button" className="btn wa" onClick={whats}>📲 WhatsApp{erros.length ? <span className="badge" title="itens a completar">{erros.length}</span> : null}</button>
+      <div className="fila">
+        <button type="button" className="btn" onClick={() => setMensagem({ msg: mensagem(D), erros })}>👁️ Ver</button>
+        <button type="button" className="btn" onClick={() => { if (salvarRegistro()) toast('Salvo no histórico deste aparelho'); }}>💾 Salvar</button>
+        {nFotos > 0 && <button type="button" className="btn estreito" onClick={enviarFotos} title="Envia as fotos com a legenda gravada">📷 {nFotos}</button>}
+      </div>
+      <div className="fila envio">
+        <button type="button" className="btn wa" onClick={whats}>📲 WhatsApp{erros.length ? <span className="badge" title="itens a completar">{erros.length}</span> : null}</button>
+        <button type="button" className="btn base" onClick={base} title="Manda o lançamento para a base de medição (o planejamento confere e aprova)">Enviar para a base</button>
+      </div>
+      <StatusBase lid={D.id} />
     </div>
   );
 }

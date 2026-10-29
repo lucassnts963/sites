@@ -37,6 +37,32 @@ const srv = http.createServer((req, res) => {
 }).listen(0);
 const URL_APP = `http://127.0.0.1:${srv.address().port}/sites/montisol/rdo/`;
 
+/* Webhook do n8n simulado (outra porta = outra origem: o navegador faz o CORS de verdade).
+   Confere a chave, responde duplicado para id repetido e guarda o que recebeu. */
+const CHAVE = 'chave-de-teste-123';
+const recebidos = [];
+let foraDoAr = false; // simula a base fora do ar (503)
+const base = http.createServer((req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-RDO-Chave');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  if (req.method === 'OPTIONS') { res.statusCode = 204; return res.end(); }
+  let corpo = '';
+  req.on('data', (c) => { corpo += c; });
+  req.on('end', () => {
+    res.setHeader('Content-Type', 'application/json');
+    if (foraDoAr) { res.statusCode = 503; return res.end(JSON.stringify({ ok: false, erro: 'fora do ar' })); }
+    if (req.headers['x-rdo-chave'] !== CHAVE) { res.statusCode = 401; return res.end(JSON.stringify({ ok: false, erro: 'chave inválida' })); }
+    const j = JSON.parse(corpo);
+    recebidos.push({ corpo: j, tipo: req.headers['content-type'] });
+    if (j.teste) return res.end(JSON.stringify({ ok: true, teste: true }));
+    const repetido = recebidos.filter((r) => r.corpo.id === j.id).length > 1;
+    res.end(JSON.stringify(repetido ? { ok: true, id: j.id, duplicado: true } : { ok: true, id: j.id, status: 'pendente' }));
+  });
+}).listen(0);
+const URL_BASE_TESTE = `http://127.0.0.1:${base.address().port}/webhook/montisol-rdo`;
+const lancamentosNaBase = () => recebidos.filter((r) => !r.corpo.teste);
+
 const antigo = { id: 'legado1', modalidade: 'ppu', data: '2026-10-20', turno: 'ADM (07h30–17h24)', encarregado: 'ENCARREGADO PPU EXEMPLO', salvoEm: '2026-10-20T20:00:00Z', enviadoEm: '2026-10-20T20:00:00Z',
   equipamentos: [{ uid: 'a', tag: 'HE 41A-01A', desenho: 'resfriamento-a-vacuo--6-colmeias', aqs: 'sim', aqsRef: 'AQS-9', equipe: [{ nome: 'JATISTA UM', origem: 'equipe' }],
     hor: { dds: '07:30', lib: '', ini: '', fim: '' }, prod: { total: '894', desob: '50' }, paradas: [], ativ: { servico: 'x' }, fotos: {} }], pessoas: [] };
@@ -52,10 +78,11 @@ try {
   page.on('pageerror', (e) => erros.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) erros.push(m.text()); });
   // efetivo.json não fica no repositório público: o 404 dele é esperado; qualquer outro é erro.
-  page.on('response', (r) => { if (r.status() >= 400 && !r.url().endsWith('/dados/efetivo.json')) erros.push(r.status() + ' ' + r.url()); });
+  page.on('response', (r) => { if (r.status() >= 400 && !r.url().endsWith('/dados/efetivo.json') && !r.url().startsWith(URL_BASE_TESTE)) erros.push(r.status() + ' ' + r.url()); });
   page.on('dialog', (d) => d.accept());
-  await page.evaluateOnNewDocument((r) => {
+  await page.evaluateOnNewDocument((r, urlBase) => {
     if (!localStorage.getItem('montisol-rdo:v1:registros')) localStorage.setItem('montisol-rdo:v1:registros', JSON.stringify([r]));
+    localStorage.setItem('montisol-rdo:v1:base:url-teste', JSON.stringify(urlBase)); // o app aponta para o webhook simulado
     window.open = (u) => { window.__aberto = u; };
     // Menu de compartilhar do celular simulado: guarda o que seria enviado.
     window.__shares = [];
@@ -69,7 +96,7 @@ try {
       })));
       window.__shares.push({ text: d.text || '', arquivos });
     };
-  }, antigo);
+  }, antigo, URL_BASE_TESTE);
   const ultimoEnvio = async (n) => {
     await page.waitForFunction((k) => window.__shares.length >= k, { timeout: 15000 }, n);
     const env = await page.evaluate((k) => window.__shares[k - 1], n);
@@ -84,7 +111,7 @@ try {
     await h.asElement().click();
   };
   const texto = () => page.evaluate(() => document.body.innerText);
-  const espera = (t) => page.waitForFunction((x) => document.body.innerText.includes(x), { timeout: 5000 }, t).then(() => true, () => false);
+  const espera = (t) => page.waitForFunction((x) => document.body.innerText.includes(x), { timeout: 10000 }, t).then(() => true, () => false);
   /** Define o valor como o navegador faria (o campo de hora do Chromium de teste é 12h). */
   const setValor = (el, val) => el.evaluate((e, x) => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, x);
@@ -96,7 +123,7 @@ try {
   ok((await texto()).includes('dados de exemplo'), 'abre com o aviso de dados de exemplo');
 
   // lista de equipamentos importada (CSV do Excel)
-  await clicar('Config', '.abas button');
+  await clicar('Ajustes', '.abas button');
   await escolherArquivo('Importar lista', CSV);
   ok(await espera('2 TAG(s) na lista'), 'lista de equipamentos importada (2 TAGs, 1 nova)');
   await foto('0-config');
@@ -184,6 +211,50 @@ try {
   await clicar('Fechar', 'dialog button');
   await clicar('📷 1', '.acoes button');
   ok((await ultimoEnvio(4)).arquivos.length === 1, 'botão de fotos envia as fotos do lançamento');
+  // ---- envio para a base
+  await clicar('Enviar para a base', '.acoes button');
+  ok(await espera('Peça a chave de envio ao planejamento'), 'sem chave: avisa para pedir ao planejamento');
+  ok(lancamentosNaBase().length === 0, 'sem chave: nada foi enviado');
+  await clicar('Ajustes', '.abas button');
+  await page.waitForSelector('.chave input');
+  await page.type('.chave input', 'chave-errada');
+  await clicar('Testar envio');
+  await page.waitForSelector('[data-teste="erro"]');
+  ok((await page.$eval('.resultado-teste', (d) => d.textContent)).includes('HTTP 401'), 'testar envio com chave errada mostra o 401');
+  await page.$eval('.chave input', (i) => { Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(i, ''); i.dispatchEvent(new Event('input', { bubbles: true })); });
+  await page.type('.chave input', CHAVE);
+  await clicar('Salvar chave');
+  ok(await espera('guardada neste aparelho') && !(await texto()).includes(CHAVE), 'chave guardada e mostrada mascarada');
+  await clicar('Testar envio');
+  await page.waitForSelector('[data-teste="ok"]');
+  const t = recebidos[recebidos.length - 1];
+  ok(JSON.stringify(t.corpo) === '{"versao":1,"teste":true}' && t.tipo === 'application/json', 'testar envio manda {"versao":1,"teste":true} e mostra o resultado');
+  await foto('7-ajustes');
+  await clicar('Lançar', '.abas button');
+  await page.waitForSelector('.acoes');
+
+  // sem internet: fica na fila (IndexedDB) e vai sozinho quando a conexão volta
+  await page.setOfflineMode(true);
+  await clicar('Enviar para a base', '.acoes button');
+  ok(await espera('ficou na fila'), 'sem internet: avisa que ficou na fila');
+  ok(await page.$eval('.status-base', (p) => p.textContent).then((x) => x.includes('na fila')), 'status do lançamento: na fila');
+  ok(lancamentosNaBase().length === 0, 'sem internet: nada chegou na base');
+  await page.setOfflineMode(false);
+  await page.waitForFunction(() => /enviado em/.test(document.querySelector('.status-base').textContent), { timeout: 15000 });
+  ok(lancamentosNaBase().length === 1, 'conexão voltou: enviado sozinho, uma vez');
+  const env = lancamentosNaBase()[0].corpo;
+  ok(/^[0-9a-f-]{36}$/.test(env.id) && env.versao === 1 && env.app_versao === '0.5.0', `corpo v1 com uuid (${env.id})`);
+  const eq0 = env.lancamento.equipamentos[0];
+  ok(env.lancamento.modalidade === 'ppu' && eq0.tag === 'HE 41A-01A' && eq0.servico === 'desobstrucao' && eq0.prod.desob === 3 && eq0.prod.mapeados === 300, 'equipamento com TAG, serviço e produção numérica');
+  const pf = env.lancamento.pessoas.find((x) => x.nome === 'JATISTA DOIS');
+  ok(pf && pf.status === 'falta' && pf.deveria === 'HE 41A-01A' && pf.just === 'Atestado' && pf.hn === null, 'falta com onde deveria estar; horas nulas');
+  ok(env.lancamento.fotos.length === 1 && env.lancamento.fotos[0].legenda === 'Colmeia 2 antes da lavagem' && !JSON.stringify(env).includes('data:image'), 'fotos só com momento e legenda, sem imagem');
+  ok(env.texto_whatsapp.includes('🏷️ *TAG do trocador:* HE 41A-01A'), 'texto do WhatsApp junto');
+  // reenviar o mesmo lançamento: mesmo id, a base responde duplicado, nada duplica
+  await clicar('Enviar para a base', '.acoes button');
+  ok(await espera('Já estava na base'), 'reenvio: a base responde duplicado e o app trata como enviado');
+  ok(lancamentosNaBase().length === 2 && lancamentosNaBase()[1].corpo.id === env.id, 'reenvio usa o mesmo id');
+  await foto('8-enviado');
   await clicar('WhatsApp', '.acoes button');
   ok(String(await page.evaluate(() => window.__aberto)).startsWith('https://wa.me/?text='), 'WhatsApp aberto com a mensagem');
   ok(decodeURIComponent(await page.evaluate(() => window.__aberto)).includes('• Desobstruídos acumulados na manutenção: 3'), 'mensagem com o acumulado da manutenção');
@@ -249,10 +320,18 @@ try {
   await page.select('.card select:nth-of-type(1)', 'ENCARREGADO EXTRA EXEMPLO');
   const turno = (await page.$$('.card select'))[1];
   await turno.select('ADM');
-  await (await page.$$('.pessoa .st button[data-st="falta"]'))[0].click();
+  await (await page.$$('.pessoa .st button[data-st="falta"]'))[0].evaluate((b) => b.click());
+  await page.waitForSelector('.acoes .btn.wa .badge');
   ok(await page.$eval('.acoes .btn.wa .badge', (b) => b.textContent) === '1', 'falta sem justificativa conta como pendência');
   await page.type('.pessoa .just input', 'Atestado');
   ok(!(await page.$('.acoes .btn.wa .badge')), 'com justificativa não há pendência');
+  // base fora do ar: fica na fila com o erro; quando volta, o app reaberto envia ao abrir
+  foraDoAr = true;
+  await clicar('Enviar para a base', '.acoes button');
+  ok(await espera('Não foi enviado: HTTP 503'), 'base fora do ar: avisa e mantém na fila');
+  ok((await page.$eval('.status-base', (p) => p.textContent)).includes('na fila'), 'status: na fila com o erro');
+  foraDoAr = false;
+  const antesDeAbrir = lancamentosNaBase().length;
   await foto('5-extra');
 
   // pesquisa
@@ -261,8 +340,17 @@ try {
   await page.waitForFunction(() => document.body.innerText.includes('Apontamentos neste aparelho (3)'));
   ok(true, 'pesquisa acha o colaborador e os 3 apontamentos (presença + equipamento + antigo)');
 
-  // recarregar mantém o rascunho
+  // recarregar mantém o rascunho (e, com internet, envia o que estava na fila)
   await page.reload({ waitUntil: 'networkidle0' });
+  await page.waitForFunction(() => document.querySelector('.status-base') && /enviado em/.test(document.querySelector('.status-base').textContent), { timeout: 15000 });
+  const ext = lancamentosNaBase().slice(antesDeAbrir);
+  // a fila entrega "pelo menos uma vez": se o envio for interrompido (aqui, o recarregamento), o mesmo id pode chegar de novo e a base responde duplicado
+  const idsExtra = new Set(ext.map((x) => x.corpo.id));
+  ok(idsExtra.size === 1 && ext[0].corpo.lancamento.modalidade === 'extra' && ext[0].corpo.lancamento.pessoas.some((x) => x.status === 'falta' && x.just === 'Atestado'),
+    `ao abrir o app, a fila foi enviada: 1 lançamento extra (${ext.length} POST)`);
+  await clicar('Histórico', '.abas button');
+  ok(await espera('base: enviado em'), 'histórico mostra o status da base');
+  await clicar('Lançar', '.abas button');
   await page.waitForFunction(() => document.body.innerText.includes('MECANICO EXTRA UM'));
   ok(await page.$eval('.pessoa .just input', (i) => i.value) === 'Atestado', 'rascunho volta depois de recarregar');
 
@@ -270,6 +358,7 @@ try {
 } finally {
   await browser.close();
   srv.close();
+  base.close();
   fs.rmSync(tmp, { recursive: true, force: true });
 }
 console.log(falhas ? `\n${falhas} falha(s)` : '\nTudo certo');
