@@ -1,17 +1,22 @@
 /* PPU: um cartão por equipamento (TAG) com equipe, AQS, horários, produção, paradas, atividades e fotos. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useApp } from '../estado.jsx';
 import { AdicionarPessoa, TagOrigem } from '../componentes/AdicionarPessoa.jsx';
 import { Area, Campo, Numero, Seg, Sp } from '../componentes/campos.jsx';
 import { abrirArquivo } from '../lib/arquivos.js';
 import { DESENHOS } from '../lib/constantes.js';
-import { contar, parseSheet } from '../lib/mapa.js';
-import { aplicarContagem, completarPelaTag, copiarApontamento, novoEq, paradaVazia } from '../lib/rascunho.js';
+import { contar, exportSvg, parseSheet } from '../lib/mapa.js';
+import { completarPelaTag, copiarApontamento, novoEq, paradaVazia } from '../lib/rascunho.js';
+import { editarManut, garantirManut, gravarMapa, importarPassagem, lerMapa, manutDe, montarPassagem, novaManutDaTag, turnosDaTag } from '../lib/passagem.js';
+import { lerPassagem, producao } from '../lib/turnos.js';
+import { mapaHtml } from '../lib/mapaImagem.js';
+import { TabelaTurnos } from '../componentes/TabelaTurnos.jsx';
+import { useEnvio } from '../componentes/useEnvio.js';
 import { Fotos } from '../componentes/Fotos.jsx';
 import { PresencaPPU } from './PresencaPPU.jsx';
-import { chaveMapa, chaveSvg, store } from '../lib/store.js';
+import { chaveSvg, store } from '../lib/store.js';
 import { minutos, resumoParadas } from '../lib/tempo.js';
-import { dataBR, norm, normTag } from '../lib/texto.js';
+import { dataBR, norm, normTag, slug } from '../lib/texto.js';
 
 // Desenhos do catálogo já lidos (o SVG grande demora para medir).
 const folhas = new Map();
@@ -33,8 +38,8 @@ async function folhaDe(eq, CAT) {
 /** Contagem do mapa guardado para a TAG + desenho, com o total de tubos do catálogo. */
 export function contagemMapa(eq, CAT) {
   if (!eq.tag || !eq.desenho) return null;
-  const est = store.get(chaveMapa(eq), null);
-  if (!est) return null;
+  const est = lerMapa(eq.tag, eq.desenho).estado;
+  if (!Object.keys(est).length) return null;
   const c = contar(est, null);
   const d = CAT.desenhos.find((x) => x.id === eq.desenho);
   c.total = d ? d.tubos : '';
@@ -56,6 +61,119 @@ function Parada({ i, j, p }) {
       <Tempo rot="Tempo parado" ini={p.ini} fim={p.fim} />
       <label>Impacto na produção</label><Seg k={`${k}.impacto`} opcoes={[['sim', 'Sim'], ['nao', 'Não']]} />
     </div>
+  );
+}
+
+/** Controle de produção: dados da manutenção (uma vez por TAG), números do turno vindos do mapa, histórico turno a turno
+    e passagem de turno para o próximo encarregado. */
+function Producao({ eq, i, c, folha }) {
+  const { dados, D, mudar, toast, tocar, versao } = useApp();
+  const enviar = useEnvio();
+  const manut = manutDe(eq.tag);
+  const mapa = lerMapa(eq.tag, eq.desenho);
+  const turnos = turnosDaTag(eq.tag);
+  const p = producao({ manut, estado: mapa.estado, ts: mapa.ts, lid: D.id, manual: eq.prod, turnos });
+  const k = `equipamentos.${i}`;
+
+  // os números calculados vão para o lançamento (mensagem, histórico)
+  const campos = ['total', 'mapeados', 'desob', 'pend', 'tamp', 'acum'];
+  const difere = campos.some((f) => String(eq.prod[f] || '') !== String(p[f] || ''));
+  useEffect(() => {
+    if (difere) mudar((d) => { for (const f of campos) d.equipamentos[i].prod[f] = p[f]; });
+  });
+
+  const editar = (campo, val) => {
+    if (!eq.tag) { toast('Informe a TAG primeiro'); return; }
+    editarManut(eq.tag, eq.desenho, { [campo]: val }, { total: eq.prod.total });
+    tocar();
+  };
+  const novaManut = () => {
+    if (!confirm(`Encerrar a manutenção atual da ${eq.tag} e começar outra? O espelho volta limpo (o mapa antigo fica guardado no aparelho).`)) return;
+    novaManutDaTag(eq.tag, eq.desenho, { total: eq.prod.total });
+    tocar(); toast('Nova manutenção iniciada');
+  };
+  const passar = () => enviar(`passagem|${eq.tag}|${versao}|${JSON.stringify(mapa.ts).length}`, async () => {
+    garantirManut(eq.tag, eq.desenho, { total: eq.prod.total, obstruidos: eq.prod.mapeados });
+    const pass = montarPassagem(eq.tag, eq.desenho, D.encarregado);
+    let svg = '', cc = null;
+    const sheet = eq.desenho ? await folha().catch(() => null) : null;
+    if (sheet) {
+      cc = contar(mapa.estado, sheet);
+      svg = exportSvg(sheet, mapa.estado, { trocador: eq.tag, data: D.data, resp: D.encarregado, desenho: eq.desenho, desobstruidosTurno: p.desob }, dados.CAT.status);
+    }
+    const meta = { trocador: eq.tag, data: D.data, turno: D.turno, resp: D.encarregado };
+    const nome = `passagem-${slug(eq.tag)}-${D.data}-${slug(D.turno || 'turno')}.html`;
+    const texto = [`🔁 *Passagem de turno – ${eq.tag}* – ${dataBR(D.data)} – ${D.turno || ''}`, `👷 ${D.encarregado}`,
+      `🟢 Desobstruídos no turno: ${p.desob || 0} · Acumulado: ${p.acum || 0}${p.mapeados ? ' de ' + p.mapeados : ''}`, `🔴 Pendentes: ${p.pend || 0} · ⚫ Tamponados: ${p.tamp || 0}`,
+      'Próximo encarregado: abra o arquivo no RDO › 📥 Receber passagem.'].join('\n');
+    return { files: [new File([mapaHtml(svg, meta, cc, pass)], nome, { type: 'text/html' })], text: texto };
+  });
+  const receber = async () => {
+    const arq = await abrirArquivo('.html,.json,text/html,application/json');
+    if (!arq) return;
+    try {
+      const pass = lerPassagem(arq.texto);
+      if (!pass) throw new Error('o arquivo não é uma passagem de turno do RDO');
+      if (eq.tag && normTag(pass.tag) !== normTag(eq.tag) && !confirm(`A passagem é da TAG ${pass.tag}, não da ${eq.tag}. Importar mesmo assim (para a ${pass.tag})?`)) return;
+      const r = importarPassagem(pass);
+      if (!eq.tag) mudar((d) => { d.equipamentos[i].tag = pass.tag; d.equipamentos[i].desenho = pass.desenho; });
+      tocar();
+      toast(`Passagem de ${r.de || 'outro aparelho'} (${r.tag}): ${r.tubos} tubo(s) atualizado(s), ${r.turnosNovos} turno(s) novo(s)${r.mapaIgnorado ? ' · mapa de manutenção encerrada ignorado' : ''}`);
+    } catch (e) { alert('Não foi possível receber: ' + e.message); }
+  };
+  const pct = p.mapeados && +p.mapeados ? Math.round((+p.acum / +p.mapeados) * 100) : null;
+  const ultimo = turnos.find((t) => t.lid !== D.id);
+
+  return (
+    <>
+      <div className="manut">
+        <div className="linha topo-card"><b>🔧 Manutenção {eq.tag ? 'da ' + eq.tag : ''}</b><Sp />
+          <small className="dim">{manut ? 'desde ' + dataBR(manut.inicio.slice(0, 10)) : eq.tag ? 'nova' : ''}</small></div>
+        <div className="grid2">
+          <div><label>Total de tubos do trocador</label>
+            <input type="number" inputMode="numeric" min="0" disabled={!eq.tag} value={manut && manut.total !== '' ? manut.total : eq.prod.total || ''} onChange={(e) => editar('total', e.target.value)} /></div>
+          <div><label>Total obstruídos (escopo)</label>
+            <input type="number" inputMode="numeric" min="0" disabled={!eq.tag} value={manut ? manut.obstruidos : eq.prod.mapeados || ''} onChange={(e) => editar('obstruidos', e.target.value)} /></div>
+        </div>
+        {c && manut && !manut.obstruidos && c.obstruido + c.desobstruido > 0 && (
+          <div className="linha"><button type="button" className="btn min" onClick={() => editar('obstruidos', String(c.obstruido + c.desobstruido))}>⇩ Usar do mapa ({c.obstruido + c.desobstruido})</button></div>
+        )}
+        <p className="dim pequeno">Preenchidos uma vez: valem para os próximos turnos desta TAG e vão na passagem de turno. Pode corrigir quando precisar.</p>
+      </div>
+
+      {p.modo === 'mapa' ? (
+        <>
+          <div className="prod-mapa">
+            <div><small>Desobstruídos no turno</small><b>{p.desob}</b></div>
+            <div><small>Acumulado</small><b>{p.acum}{p.mapeados ? <small> de {p.mapeados}</small> : null}</b>{pct != null && <small>{pct}%</small>}</div>
+            <div><small>Pendentes</small><b>{p.pend}</b></div>
+            <div><small>Tamponados</small><b>{p.tamp}</b></div>
+          </div>
+          <p className="dim pequeno">Vêm do mapeamento: no turno contam só os tubos marcados neste lançamento.</p>
+        </>
+      ) : (
+        <>
+          <div className="grid2">
+            <Numero rot="Desobstruídos no turno" k={`${k}.prod.desob`} />
+            <Numero rot="Tubos pendentes" k={`${k}.prod.pend`} placeholder={p.sugestaoPend ? 'escopo − acumulado: ' + p.sugestaoPend : ''} />
+            <Numero rot="Tubos tamponados" k={`${k}.prod.tamp`} />
+            <div><label>Acumulado na manutenção</label><input disabled value={p.acum} /></div>
+          </div>
+          <p className="dim pequeno">Sem mapeamento marcado: digite. Ao marcar o espelho, estes números passam a vir dele.</p>
+        </>
+      )}
+
+      {eq.tag && <details className="hist-turnos" open={turnos.length > 0 && turnos.length < 4}>
+        <summary>📈 Turno a turno ({turnos.length}){ultimo ? ` · último: ${dataBR(ultimo.data).slice(0, 5)} ${String(ultimo.turno || '').split(' ')[0]} (${String(ultimo.encarregado || '').split(' ')[0]})` : ''}</summary>
+        <TabelaTurnos turnos={turnos} lid={D.id} />
+      </details>}
+      {eq.tag && <div className="linha">
+        <button type="button" className="btn wa" onClick={passar}>📤 Passar turno</button>
+        <button type="button" className="btn" onClick={receber}>📥 Receber passagem</button>
+        <Sp />
+        {manut && <button type="button" className="btn min perigo" onClick={novaManut} title="Encerra a manutenção e começa outra">Nova manutenção</button>}
+      </div>}
+    </>
   );
 }
 
@@ -98,9 +216,8 @@ function Equipamento({ eq, i, pendencias }) {
       if (!lido.sheet.tubes.length) throw new Error('nenhum tubo no desenho');
       store.set(chaveSvg(eq.tag), arq.texto);
       const n = Object.keys(lido.estado).length;
-      const x = { ...eq, desenho: '__arquivo' };
-      if (n && confirm(`O SVG já traz ${n} tubos marcados. Usar essa marcação?`)) store.set(chaveMapa(x), lido.estado);
-      mudar((d) => { d.equipamentos[i].desenho = '__arquivo'; d.equipamentos[i].mapaInicio = null; });
+      if (n && confirm(`O SVG já traz ${n} tubos marcados. Usar essa marcação?`)) gravarMapa(eq.tag, '__arquivo', lido.estado, { lid: 'importado', autor: '' });
+      mudar((d) => { d.equipamentos[i].desenho = '__arquivo'; });
       toast(`${lido.sheet.tubes.length} tubos carregados`);
     } catch (x) { alert('Não foi possível abrir: ' + x.message); }
   };
@@ -109,15 +226,8 @@ function Equipamento({ eq, i, pendencias }) {
     let sheet;
     try { sheet = await folhaDe(eq, CAT); } catch (e) { toast(e.message); return; }
     if (!sheet) { toast('Escolha o desenho do espelho (ou abra o SVG do aparelho).'); return; }
-    const estado = store.get(chaveMapa(eq), {});
-    if (!eq.mapaInicio) mudar((d) => { d.equipamentos[i].mapaInicio = contar(estado, sheet); });
-    setMapa({ i, sheet, estado });
-  };
-
-  const usarMapa = () => {
-    if (!c) return;
-    mudar((d) => aplicarContagem(d.equipamentos[i], c));
-    toast('Produção preenchida com os números do mapa');
+    garantirManut(eq.tag, eq.desenho, { total: eq.prod.total });
+    setMapa({ i, sheet, estado: lerMapa(eq.tag, eq.desenho).estado });
   };
 
   return (
@@ -169,15 +279,7 @@ function Equipamento({ eq, i, pendencias }) {
         <div className="grid4"><Campo rot="Liberação" k={`${k}.hor.lib`} tipo="time" /><Campo rot="Início desobstrução" k={`${k}.hor.ini`} tipo="time" /><Campo rot="Término" k={`${k}.hor.fim`} tipo="time" /></div>
 
         <h3>📋 2. Controle de produção</h3>
-        <div className="grid2">
-          <Numero rot="Total de tubos do trocador" k={`${k}.prod.total`} />
-          <Numero rot="Tubos obstruídos mapeados" k={`${k}.prod.mapeados`} />
-          <Numero rot="Desobstruídos no turno" k={`${k}.prod.desob`} />
-          <Numero rot="Tubos pendentes" k={`${k}.prod.pend`} />
-          <Numero rot="Tubos tamponados" k={`${k}.prod.tamp`} />
-        </div>
-        {c && <div className="linha"><button type="button" className="btn min" onClick={usarMapa}>⇩ Usar números do mapa</button>
-          <small>desobstruídos no turno = desobstruídos agora − no início do lançamento</small></div>}
+        <Producao eq={eq} i={i} c={c} folha={() => folhaDe(eq, CAT)} />
 
         <h3>🚧 3. Controle de paradas</h3>
         {eq.paradas.map((p, j) => <Parada key={j} i={i} j={j} p={p} />)}

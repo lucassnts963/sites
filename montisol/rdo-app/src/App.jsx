@@ -6,7 +6,8 @@ import { legendaMapa, mapaHtml, mapaPng } from './lib/mapaImagem.js';
 import { useEnvio } from './componentes/useEnvio.js';
 import { MOD_TXT } from './lib/constantes.js';
 import { contar, exportSvg } from './lib/mapa.js';
-import { chaveMapa, store } from './lib/store.js';
+import { gravarMapa, importarPassagem, lerMapa, montarPassagem } from './lib/passagem.js';
+import { desobNoTurno, lerPassagem } from './lib/turnos.js';
 import { dataBR, slug } from './lib/texto.js';
 import { Config } from './telas/Config.jsx';
 import { Historico } from './telas/Historico.jsx';
@@ -55,14 +56,14 @@ function MensagemDialog() {
 
 /** Abre o editor do espelho do equipamento escolhido e guarda o mapa por TAG + desenho. */
 function EditorMapa() {
-  const { D, dados, mapa, setMapa } = useApp();
+  const { D, dados, mapa, setMapa, toast, tocar } = useApp();
   const enviar = useEnvio();
   if (!mapa) return null;
   const eq = D.equipamentos[mapa.i];
   const nome = `mapeamento-${slug(eq.tag)}-${D.data}-${slug(D.turno || 'turno')}`;
   const gerar = (est) => {
     const c = contar(est, mapa.sheet);
-    const meta = { trocador: eq.tag, data: D.data, turno: D.turno, resp: D.encarregado, desenho: eq.desenho, desobstruidosTurno: Math.max(0, c.desobstruido - ((eq.mapaInicio && eq.mapaInicio.desobstruido) || 0)) };
+    const meta = { trocador: eq.tag, data: D.data, turno: D.turno, resp: D.encarregado, desenho: eq.desenho, desobstruidosTurno: desobNoTurno(est, lerMapa(eq.tag, eq.desenho).ts, D.id) };
     return { c, meta, svg: exportSvg(mapa.sheet, est, meta, dados.CAT.status) };
   };
   const chave = (tipo, est) => tipo + JSON.stringify(est);
@@ -74,13 +75,23 @@ function EditorMapa() {
   });
   const enviarArquivo = (est) => enviar(chave('html', est), async () => {
     const { c, meta, svg } = gerar(est);
-    return { files: [new File([mapaHtml(svg, meta, c)], nome + '.html', { type: 'text/html' })], text: legendaMapa(meta, c) };
+    const p = montarPassagem(eq.tag, eq.desenho, D.encarregado);
+    return { files: [new File([mapaHtml(svg, meta, c, p)], nome + '.html', { type: 'text/html' })], text: legendaMapa(meta, c) };
   });
   const baixarSvg = (est) => baixar(new File([gerar(est).svg], nome + '.svg', { type: 'image/svg+xml' }));
   return (
     <Mapa sheet={mapa.sheet} estadoInicial={mapa.estado} statuses={dados.CAT.status} titulo={eq.tag}
-      onChange={(est) => store.set(chaveMapa(eq), est)}
-      onClose={(est) => { store.set(chaveMapa(eq), est); setMapa(null); }}
+      onChange={(est, op) => gravarMapa(eq.tag, eq.desenho, est, { lid: op && op.importado ? 'importado' : D.id, autor: D.encarregado })}
+      onClose={(est) => { gravarMapa(eq.tag, eq.desenho, est, { lid: D.id, autor: D.encarregado }); setMapa(null); tocar(); }}
+      aoImportar={(texto) => {
+        const p = lerPassagem(texto);
+        if (!p) return null;
+        if (p.tag && p.tag.toUpperCase() !== eq.tag.toUpperCase()) { toast(`Esta passagem é da TAG ${p.tag}`); return lerMapa(eq.tag, eq.desenho).estado; }
+        const r = importarPassagem(p);
+        toast(`Passagem de ${r.de || 'outro aparelho'} recebida: ${r.tubos} tubo(s) atualizado(s), ${r.turnosNovos} turno(s) novo(s)`);
+        tocar();
+        return lerMapa(eq.tag, eq.desenho).estado;
+      }}
       onEnviarImagem={enviarImagem} onEnviarArquivo={enviarArquivo} onBaixarSvg={baixarSvg} />
   );
 }

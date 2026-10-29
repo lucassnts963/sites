@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { carregarDados } from './lib/dados.js';
 import { fotosReferenciadas, limparFotosOrfas } from './lib/fotos.js';
+import { registrarTurnos } from './lib/passagem.js';
 import { garantirConteudo, migrar, novoDraft } from './lib/rascunho.js';
 import { gravarRegistro, quandoFaltarEspaco, registros, store } from './lib/store.js';
 import { clone } from './lib/texto.js';
@@ -44,14 +45,22 @@ export function AppProvider({ children }) {
   }, [recarregarDados, definirD]);
 
   const atualizarRegistros = useCallback(() => setRegs(registros()), []);
-  const salvarRegistro = useCallback((extra) => { const ok = gravarRegistro(Dref.current, extra); atualizarRegistros(); return ok; }, [atualizarRegistros]);
+  // versão dos dados guardados fora do rascunho (manutenção, mapa, turnos): sobe para a tela reler depois de gravar
+  const [versao, setVersao] = useState(0);
+  const tocar = useCallback(() => setVersao((n) => n + 1), []);
+  const salvarRegistro = useCallback((extra) => {
+    const ok = gravarRegistro(Dref.current, extra);
+    if (ok) registrarTurnos(Dref.current);
+    atualizarRegistros(); tocar();
+    return ok;
+  }, [atualizarRegistros, tocar]);
   // Apaga as fotos que nem o rascunho nem o histórico usam (depois de "Novo", excluir registro, ao abrir).
   const limparFotos = useCallback(() => limparFotosOrfas(fotosReferenciadas(Dref.current, registros())), []);
   const setEu = useCallback((nome) => { if (nome) store.set('eu', nome); else store.del('eu'); setEuState(nome || ''); }, []);
 
   const valor = useMemo(() => ({
-    dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu, limparFotos,
+    dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu, limparFotos, versao, tocar,
     aviso, toast, mensagem, setMensagem, mapa, setMapa,
-  }), [dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu, limparFotos, aviso, toast, mensagem, mapa]);
+  }), [dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu, limparFotos, versao, tocar, aviso, toast, mensagem, mapa]);
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }

@@ -35,6 +35,7 @@ function blocoPPU(d, eq) {
     `• Liberação da atividade: ${v(eq.hor.lib)}`, `• Início da desobstrução: ${v(eq.hor.ini)}`, `• Término da atividade: ${v(eq.hor.fim)}`, '');
   L.push('📋 *2. CONTROLE DE PRODUÇÃO*');
   L.push(`• Total de tubos do trocador: ${v(eq.prod.total)}`, `• Tubos obstruídos mapeados: ${v(eq.prod.mapeados)}`, `• Tubos desobstruídos no turno: ${v(eq.prod.desob)}`,
+    ...(v(eq.prod.acum) ? [`• Desobstruídos acumulados na manutenção: ${v(eq.prod.acum)}`] : []),
     `• Tubos pendentes: ${v(eq.prod.pend)}`, `• Tubos tamponados: ${v(eq.prod.tamp)}`, '');
   L.push('🚧 *3. CONTROLE DE PARADAS*');
   if (!(eq.paradas || []).length) L.push('', '• Sem paradas registradas');
