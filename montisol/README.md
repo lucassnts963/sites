@@ -113,7 +113,12 @@ Tema claro com texto escuro (legível no sol) e botões de 48 px ou mais. Logos 
   conexão, ao voltar para a tela e a cada 90 s. Status por lançamento ("enviado em…", "na fila") no lançamento e no Histórico (que também tem **⬆ Base**).
 - **Sem duplicar:** reenviar usa o mesmo `id`. A fila entrega **pelo menos uma vez** (se o envio for interrompido depois de chegar, o mesmo id pode chegar de novo):
   o fluxo do n8n **precisa deduplicar pelo `id`** e responder `200 {"ok":true,"duplicado":true}`; o app trata isso como enviado.
-- **Respostas:** `200 {"ok":true,"id":"…","status":"pendente"}` ou `200 {"ok":true,"duplicado":true}` = enviado. 401/403 = "chave recusada"; outro erro fica na fila com a mensagem.
+- **Respostas:**
+  - `200 {"ok":true,"id":"…","status":"pendente"}` = enviado (aguarda aprovação).
+  - `200 {"ok":true,…,"atualizado":true}` = reenvio do mesmo id enquanto pendente/rejeitado: o n8n atualizou. O app avisa "Correção recebida: aguarda a aprovação do planejamento" e marca como enviado.
+  - `409 {"ok":false,"ja_aprovado":true,…}` = já aprovado/registrado. **Definitivo:** sai da fila, não tenta de novo; o lançamento e o Histórico mostram "aprovado · Já aprovado pelo planejamento. Procure o planejamento para alterar."
+  - `200 {"ok":true,"duplicado":true}` também conta como enviado.
+  - 401/403 = "chave recusada": continua na fila. Sem conexão, tempo esgotado ou outro erro: continua na fila com a mensagem.
 - **CORS:** o app roda em `https://lucassnts963.github.io`; o webhook precisa responder ao preflight (`OPTIONS`) liberando essa origem e os cabeçalhos
   `Content-Type` e `X-RDO-Chave` (no nó Webhook do n8n: *Allowed Origins (CORS)*). Sem isso o navegador bloqueia e o lançamento fica na fila.
 - Os testes do navegador apontam o app para um webhook local (chave `montisol-rdo:v1:base:url-teste` no localStorage, só nos testes).

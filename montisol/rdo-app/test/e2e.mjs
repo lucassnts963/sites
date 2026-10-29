@@ -38,10 +38,13 @@ const srv = http.createServer((req, res) => {
 const URL_APP = `http://127.0.0.1:${srv.address().port}/sites/montisol/rdo/`;
 
 /* Webhook do n8n simulado (outra porta = outra origem: o navegador faz o CORS de verdade).
-   Confere a chave, responde duplicado para id repetido e guarda o que recebeu. */
+   Confere a chave e guarda o que recebeu. Como o n8n: id novo = pendente; reenvio enquanto pendente/rejeitado atualiza
+   (200 "atualizado"); reenvio depois de aprovado = 409 "ja_aprovado". */
 const CHAVE = 'chave-de-teste-123';
 const recebidos = [];
 let foraDoAr = false; // simula a base fora do ar (503)
+let forcarHttp = 0; // força uma resposta (401/403) para testar a fila
+const estados = new Map(); // id -> pendente | aprovado (o "planejamento" aprova no teste)
 const base = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-RDO-Chave');
@@ -52,16 +55,21 @@ const base = http.createServer((req, res) => {
   req.on('end', () => {
     res.setHeader('Content-Type', 'application/json');
     if (foraDoAr) { res.statusCode = 503; return res.end(JSON.stringify({ ok: false, erro: 'fora do ar' })); }
+    if (forcarHttp) { res.statusCode = forcarHttp; recebidos.push({ corpo: JSON.parse(corpo), recusado: forcarHttp }); return res.end(JSON.stringify({ ok: false, erro: 'chave inválida' })); }
     if (req.headers['x-rdo-chave'] !== CHAVE) { res.statusCode = 401; return res.end(JSON.stringify({ ok: false, erro: 'chave inválida' })); }
     const j = JSON.parse(corpo);
     recebidos.push({ corpo: j, tipo: req.headers['content-type'] });
     if (j.teste) return res.end(JSON.stringify({ ok: true, teste: true }));
-    const repetido = recebidos.filter((r) => r.corpo.id === j.id).length > 1;
-    res.end(JSON.stringify(repetido ? { ok: true, id: j.id, duplicado: true } : { ok: true, id: j.id, status: 'pendente' }));
+    if (!estados.has(j.id)) { estados.set(j.id, 'pendente'); return res.end(JSON.stringify({ ok: true, id: j.id, status: 'pendente' })); }
+    if (estados.get(j.id) === 'aprovado') {
+      res.statusCode = 409;
+      return res.end(JSON.stringify({ ok: false, ja_aprovado: true, status: 'aprovado', erro: 'Este lançamento já foi aprovado pelo planejamento. Procure o planejamento para fazer a alteração.' }));
+    }
+    res.end(JSON.stringify({ ok: true, id: j.id, status: 'pendente', atualizado: true }));
   });
 }).listen(0);
 const URL_BASE_TESTE = `http://127.0.0.1:${base.address().port}/webhook/montisol-rdo`;
-const lancamentosNaBase = () => recebidos.filter((r) => !r.corpo.teste);
+const lancamentosNaBase = () => recebidos.filter((r) => !r.corpo.teste && !r.recusado);
 
 const antigo = { id: 'legado1', modalidade: 'ppu', data: '2026-10-20', turno: 'ADM (07h30–17h24)', encarregado: 'ENCARREGADO PPU EXEMPLO', salvoEm: '2026-10-20T20:00:00Z', enviadoEm: '2026-10-20T20:00:00Z',
   equipamentos: [{ uid: 'a', tag: 'HE 41A-01A', desenho: 'resfriamento-a-vacuo--6-colmeias', aqs: 'sim', aqsRef: 'AQS-9', equipe: [{ nome: 'JATISTA UM', origem: 'equipe' }],
@@ -113,6 +121,12 @@ try {
   const texto = () => page.evaluate(() => document.body.innerText);
   const espera = (t) => page.waitForFunction((x) => document.body.innerText.includes(x), { timeout: 10000 }, t).then(() => true, () => false);
   /** Define o valor como o navegador faria (o campo de hora do Chromium de teste é 12h). */
+  /** Quantos lançamentos estão na fila do aparelho (IndexedDB). */
+  const filaNoAparelho = () => page.evaluate(() => new Promise((ok) => {
+    const q = indexedDB.open('montisol-rdo', 2);
+    q.onsuccess = () => { const g = q.result.transaction('fila').objectStore('fila').getAll(); g.onsuccess = () => { ok(g.result.length); q.result.close(); }; };
+  }));
+  const MSG_APROVADO = 'Já aprovado pelo planejamento. Procure o planejamento para alterar.';
   const setValor = (el, val) => el.evaluate((e, x) => {
     Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(e, x);
     e.dispatchEvent(new Event('input', { bubbles: true }));
@@ -250,11 +264,25 @@ try {
   ok(pf && pf.status === 'falta' && pf.deveria === 'HE 41A-01A' && pf.just === 'Atestado' && pf.hn === null, 'falta com onde deveria estar; horas nulas');
   ok(env.lancamento.fotos.length === 1 && env.lancamento.fotos[0].legenda === 'Colmeia 2 antes da lavagem' && !JSON.stringify(env).includes('data:image'), 'fotos só com momento e legenda, sem imagem');
   ok(env.texto_whatsapp.includes('🏷️ *TAG do trocador:* HE 41A-01A'), 'texto do WhatsApp junto');
-  // reenviar o mesmo lançamento: mesmo id, a base responde duplicado, nada duplica
+  // correção enquanto está pendente: mesmo id, o n8n atualiza e responde "atualizado"
+  await setValor((await page.$$('.card input[type="time"]'))[0], '07:00');
   await clicar('Enviar para a base', '.acoes button');
-  ok(await espera('Já estava na base'), 'reenvio: a base responde duplicado e o app trata como enviado');
-  ok(lancamentosNaBase().length === 2 && lancamentosNaBase()[1].corpo.id === env.id, 'reenvio usa o mesmo id');
+  ok(await espera('Correção recebida: aguarda a aprovação do planejamento'), 'correção em pendente: avisa "Correção recebida"');
+  const corr = lancamentosNaBase()[1];
+  ok(lancamentosNaBase().length === 2 && corr.corpo.id === env.id && corr.corpo.lancamento.inicio === '07:00', 'correção usa o mesmo id e leva o dado corrigido');
+  ok((await page.$eval('.status-base', (p) => p.textContent)).includes('correção enviada em') && await filaNoAparelho() === 0, 'correção: marcado como enviado, fora da fila');
   await foto('8-enviado');
+  // depois que o planejamento aprova: 409, sai da fila e não tenta de novo
+  estados.set(env.id, 'aprovado');
+  await clicar('Enviar para a base', '.acoes button');
+  ok(await espera(MSG_APROVADO), 'reenvio depois de aprovado: aviso "Já aprovado pelo planejamento…"');
+  ok((await page.$eval('.status-base', (p) => p.textContent)).includes(MSG_APROVADO), 'reenvio depois de aprovado: a mensagem aparece no lançamento');
+  ok(await filaNoAparelho() === 0, 'reenvio depois de aprovado: saiu da fila');
+  const postsAposAprovar = recebidos.length;
+  await page.evaluate(() => window.dispatchEvent(new Event('online'))); // um gatilho da fila não pode reenviar
+  await new Promise((r) => setTimeout(r, 1500));
+  ok(recebidos.length === postsAposAprovar, 'reenvio depois de aprovado: a fila não tenta de novo');
+  await foto('8b-aprovado');
   await clicar('WhatsApp', '.acoes button');
   ok(String(await page.evaluate(() => window.__aberto)).startsWith('https://wa.me/?text='), 'WhatsApp aberto com a mensagem');
   ok(decodeURIComponent(await page.evaluate(() => window.__aberto)).includes('• Desobstruídos acumulados na manutenção: 3'), 'mensagem com o acumulado da manutenção');
@@ -325,6 +353,17 @@ try {
   ok(await page.$eval('.acoes .btn.wa .badge', (b) => b.textContent) === '1', 'falta sem justificativa conta como pendência');
   await page.type('.pessoa .just input', 'Atestado');
   ok(!(await page.$('.acoes .btn.wa .badge')), 'com justificativa não há pendência');
+  // chave recusada (403 e 401): continua na fila
+  forcarHttp = 403;
+  await clicar('Enviar para a base', '.acoes button');
+  ok(await espera('chave recusada'), '403: avisa chave recusada');
+  ok((await page.$eval('.status-base', (p) => p.textContent)).includes('na fila') && await filaNoAparelho() === 1, '403: continua na fila');
+  forcarHttp = 401;
+  const antes401 = recebidos.length;
+  await page.evaluate(() => window.dispatchEvent(new Event('online')));
+  await page.waitForFunction(() => /HTTP 401: chave recusada/.test(document.querySelector('.status-base').textContent), { timeout: 10000 });
+  ok(recebidos.length > antes401 && await filaNoAparelho() === 1, '401: a fila tentou de novo e o lançamento continua na fila');
+  forcarHttp = 0;
   // base fora do ar: fica na fila com o erro; quando volta, o app reaberto envia ao abrir
   foraDoAr = true;
   await clicar('Enviar para a base', '.acoes button');
@@ -350,6 +389,7 @@ try {
     `ao abrir o app, a fila foi enviada: 1 lançamento extra (${ext.length} POST)`);
   await clicar('Histórico', '.abas button');
   ok(await espera('base: enviado em'), 'histórico mostra o status da base');
+  ok(await espera('base: aprovado · ' + MSG_APROVADO), 'histórico marca o PPU como aprovado, com a mensagem');
   await clicar('Lançar', '.abas button');
   await page.waitForFunction(() => document.body.innerText.includes('MECANICO EXTRA UM'));
   ok(await page.$eval('.pessoa .just input', (i) => i.value) === 'Atestado', 'rascunho volta depois de recarregar');
