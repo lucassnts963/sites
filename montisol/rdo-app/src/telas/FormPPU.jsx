@@ -9,7 +9,7 @@ import { SERVICOS } from '../lib/contrato.js';
 import { contar, exportSvg, parseSheet } from '../lib/mapa.js';
 import { completarPelaTag, copiarApontamento, novoEq, paradaVazia } from '../lib/rascunho.js';
 import { editarManut, garantirManut, gravarMapa, importarPassagem, lerMapa, manutDe, montarPassagem, novaManutDaTag, turnosDaTag } from '../lib/passagem.js';
-import { lerPassagem, producao } from '../lib/turnos.js';
+import { confirmacaoPassagem, lerPassagem, producao } from '../lib/turnos.js';
 import { mapaHtml } from '../lib/mapaImagem.js';
 import { TabelaTurnos } from '../componentes/TabelaTurnos.jsx';
 import { useEnvio } from '../componentes/useEnvio.js';
@@ -116,6 +116,7 @@ function Producao({ eq, i, c, folha }) {
       const pass = lerPassagem(arq.texto);
       if (!pass) throw new Error('o arquivo não é uma passagem de turno do RDO');
       if (eq.tag && normTag(pass.tag) !== normTag(eq.tag) && !confirm(`A passagem é da TAG ${pass.tag}, não da ${eq.tag}. Importar mesmo assim (para a ${pass.tag})?`)) return;
+      if (!confirm(confirmacaoPassagem(pass))) return;
       const r = importarPassagem(pass);
       if (!eq.tag) mudar((d) => { d.equipamentos[i].tag = pass.tag; d.equipamentos[i].desenho = pass.desenho; });
       tocar();

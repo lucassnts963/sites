@@ -91,6 +91,21 @@ O app novo reaproveita `dados/` e `desenhos/`.
 - **Sem sinal:** depois do primeiro acesso com internet, o app abre offline (rede primeiro, cache de reserva). Lançamentos e histórico são locais de qualquer forma.
 - **Histórico:** local, com ver, editar, duplicar para hoje, backup e restauração em arquivo JSON.
 
+## Mapa de tubos: modos Mover e Marcar (regra de segurança)
+
+Marcação errada no espelho vira número errado no RDO, no WhatsApp e na base de medição. Por isso (`rdo-app/src/lib/gestos.js`, testado em `test/gestos.test.js` e no navegador):
+
+- **O mapa sempre abre em ✋ Mover** e volta para Mover toda vez que é fechado e aberto de novo. Em Mover, **nenhum toque marca tubo**:
+  toque simples, toque duplo, arrasto, pinça (dois dedos) ou mouse só navegam e dão zoom.
+- **Só em ✏ Marcar o toque marca**, e o encarregado escolhe esse modo de propósito. Em Marcar: tocar num tubo aplica o pincel escolhido
+  (tocar de novo com o mesmo pincel limpa); arrastar **começando num tubo** pinta os tubos por onde o dedo passa; arrastar começando fora
+  dos tubos só navega; ao pôr o segundo dedo (pinça) a pintura começada é cancelada e a cor volta ao que estava salvo.
+- O modo ativo fica numa faixa logo acima do desenho: azul-marinho "Mover: toque nos tubos desativado" ou amarela
+  "Marcar: o toque marca o tubo como …" (com a cor do pincel), e no botão selecionado do par Mover/Marcar.
+- **↶ Desfazer** desfaz a última marcação (e também a importação de um SVG).
+- **Ações em massa pedem confirmação:** Importar SVG no mapa ("Substituir TODAS as marcações…", dá para desfazer), juntar uma passagem de turno
+  (no mapa e em 📥 Receber passagem, com resumo de quem enviou e quantos tubos), Nova manutenção (limpa o espelho) e usar a marcação de um SVG do aparelho.
+
 ## Identidade visual
 
 Segue a identidade da Montisol (`projects/montisol/assets/identidade-visual/tokens.json` no vault): azul marinho `#243185`, azul royal `#2542e6`,
@@ -113,7 +128,12 @@ Tema claro com texto escuro (legível no sol) e botões de 48 px ou mais. Logos 
   conexão, ao voltar para a tela e a cada 90 s. Status por lançamento ("enviado em…", "na fila") no lançamento e no Histórico (que também tem **⬆ Base**).
 - **Sem duplicar:** reenviar usa o mesmo `id`. A fila entrega **pelo menos uma vez** (se o envio for interrompido depois de chegar, o mesmo id pode chegar de novo):
   o fluxo do n8n **precisa deduplicar pelo `id`** e responder `200 {"ok":true,"duplicado":true}`; o app trata isso como enviado.
-- **Respostas:** `200 {"ok":true,"id":"…","status":"pendente"}` ou `200 {"ok":true,"duplicado":true}` = enviado. 401/403 = "chave recusada"; outro erro fica na fila com a mensagem.
+- **Respostas:**
+  - `200 {"ok":true,"id":"…","status":"pendente"}` = enviado (aguarda aprovação).
+  - `200 {"ok":true,…,"atualizado":true}` = reenvio do mesmo id enquanto pendente/rejeitado: o n8n atualizou. O app avisa "Correção recebida: aguarda a aprovação do planejamento" e marca como enviado.
+  - `409 {"ok":false,"ja_aprovado":true,…}` = já aprovado/registrado. **Definitivo:** sai da fila, não tenta de novo; o lançamento e o Histórico mostram "aprovado · Já aprovado pelo planejamento. Procure o planejamento para alterar."
+  - `200 {"ok":true,"duplicado":true}` também conta como enviado.
+  - 401/403 = "chave recusada": continua na fila. Sem conexão, tempo esgotado ou outro erro: continua na fila com a mensagem.
 - **CORS:** o app roda em `https://lucassnts963.github.io`; o webhook precisa responder ao preflight (`OPTIONS`) liberando essa origem e os cabeçalhos
   `Content-Type` e `X-RDO-Chave` (no nó Webhook do n8n: *Allowed Origins (CORS)*). Sem isso o navegador bloqueia e o lançamento fica na fila.
 - Os testes do navegador apontam o app para um webhook local (chave `montisol-rdo:v1:base:url-teste` no localStorage, só nos testes).

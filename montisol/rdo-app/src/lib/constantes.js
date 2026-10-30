@@ -1,4 +1,4 @@
-export const VERSAO = '0.5.0';
+export const VERSAO = '0.6.0';
 
 export const ROTULO_ST = { presente: 'Presente', falta: 'Falta', ferias: 'Férias', afastado: 'Afastado' };
 export const MOD_TXT = { ppu: 'PPU (desobstrução)', extra: 'Equipe extra (HH)', '6x4': 'Equipe fixa 6x4' };

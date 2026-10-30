@@ -1,6 +1,6 @@
 /* Service worker do RDO de campo: rede primeiro, cache como reserva (funciona sem sinal na planta).
    Sempre busca a versão nova quando há internet; sem internet usa a última que o aparelho já abriu. */
-const CACHE = 'montisol-rdo-v5';
+const CACHE = 'montisol-rdo-v6';
 const BASE = ['./', './index.html', './rdo/', './rdo/index.html', './rdo/assets/app.css', './rdo/assets/app.js', './rdo/manifest.webmanifest',
   './rdo/assets/exo-2-latin-wght-normal.woff2', './rdo/assets/exo-2-latin-ext-wght-normal.woff2', './rdo/assets/montserrat-latin-wght-normal.woff2',
   './marca/logo-horizontal-branco.png', './marca/logo-vertical-colorido.png', './marca/pwa-192.png', './marca/pwa-512.png', './marca/favicon-64.png', './marca/apple-touch-icon.png',

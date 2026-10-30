@@ -110,6 +110,8 @@ main { padding: 10px 12px 20px; max-width: 760px; margin: 0 auto; }
 .tag.ok { background: var(--ok-fundo); color: var(--ok); }
 .tag.fila { background: #e8ecfe; color: var(--marinho); }
 .tag.erro { background: var(--falta-fundo); color: var(--falta); }
+.tag.aprovado { background: #e8ecfe; color: var(--marinho); white-space: normal; text-align: right; }
+.status-base.aprovado { color: var(--marinho); font-weight: 700; background: #e8ecfe; border-radius: 8px; padding: 6px 8px; text-align: left; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--suave); border: 1px solid var(--line); border-radius: 999px; padding: 6px 6px 6px 12px; font-size: 14px; font-weight: 600; }
 .chip button { border: 0; background: #dfe3f2; color: var(--marinho); border-radius: 50%; width: 30px; height: 30px; cursor: pointer; }
@@ -215,3 +217,15 @@ table.turnos tr.este td { background: #e8ecfe; }
 .resultado-teste { margin-top: 8px; padding: 8px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; white-space: pre-wrap; word-break: break-word; }
 .resultado-teste.ok { background: var(--ok-fundo); color: var(--ok); }
 .resultado-teste.erro { background: var(--falta-fundo); color: var(--falta); }
+
+/* modos do espelho: Mover (padrão, o toque não marca) e Marcar */
+.seg.modo-mapa { flex: 0 0 auto; }
+.seg.modo-mapa button { min-width: 108px; font-size: 15px; }
+.seg.modo-mapa button.on[data-modo="move"] { background: var(--marinho); color: #fff; }
+.seg.modo-mapa button.on[data-modo="mark"] { background: var(--royal); color: #fff; }
+.modo-aviso { padding: 8px 12px; font-size: 15px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.modo-aviso.move { background: var(--marinho); color: #fff; }
+.modo-aviso.mark { background: #fff4c2; color: #4a3500; border-bottom: 3px solid var(--royal); }
+.modo-aviso .cor { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(0,0,0,.3); vertical-align: middle; }
+.mapa-main.modo-move { cursor: grab; }
+.mapa-main.modo-mark { cursor: crosshair; }
