@@ -1,22 +1,26 @@
 /* Fotos do lançamento: ficam no aparelho (IndexedDB; o localStorage não comporta imagens).
    No rascunho fica só a referência: { id, legenda, momento: 'antes' | 'durante' | 'depois' }.
    Ao enviar, a legenda é gravada na própria foto (faixa embaixo), para não se perder no WhatsApp. */
-import { tx as txDb } from './idb.js';
+import { imagens } from '#plataforma';
 import { uid } from './texto.js';
 
 export const MOMENTOS = [['antes', 'Antes'], ['durante', 'Durante'], ['depois', 'Depois']];
 const LADO_MAX = 1600;
 
-const tx = (modo, fn) => txDb('fotos', modo, fn);
-export const lerFoto = (id) => tx('readonly', (s) => s.get(id));
-export const apagarFoto = (id) => tx('readwrite', (s) => { s.delete(id); });
-const idsGuardados = () => tx('readonly', (s) => s.getAllKeys());
+/** No BeaconOS (sem IndexedDB) as imagens não ficam no aparelho: a foto é registrada só com momento e legenda. */
+export const SUPORTA_IMAGENS = !!imagens;
+export const lerFoto = (id) => (imagens ? imagens.ler(id) : Promise.resolve(null));
+export const apagarFoto = (id) => (imagens ? imagens.apagar(id) : Promise.resolve());
+const idsGuardados = () => (imagens ? imagens.ids() : Promise.resolve([]));
+
+/** Registro de foto sem imagem (momento e legenda), para quando o aparelho não guarda imagens. */
+export const fotoSemImagem = () => ({ id: 'f' + uid(), legenda: '', momento: '', semImagem: true });
 
 /** Reduz a foto (lado maior 1600 px, JPEG) e guarda. Devolve a referência para o rascunho. */
 export async function guardarFoto(arquivo) {
   const blob = await reduzir(arquivo);
   const id = 'f' + uid();
-  await tx('readwrite', (s) => { s.put(blob, id); });
+  await imagens.guardar(id, blob);
   return { id, legenda: '', momento: '' };
 }
 

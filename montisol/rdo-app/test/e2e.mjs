@@ -316,7 +316,7 @@ try {
   await page.waitForFunction(() => /enviado em/.test(document.querySelector('.status-base').textContent), { timeout: 15000 });
   ok(lancamentosNaBase().length === 1, 'conexão voltou: enviado sozinho, uma vez');
   const env = lancamentosNaBase()[0].corpo;
-  ok(/^[0-9a-f-]{36}$/.test(env.id) && env.versao === 1 && env.app_versao === '0.6.0', `corpo v1 com uuid (${env.id})`);
+  ok(/^[0-9a-f-]{36}$/.test(env.id) && env.versao === 1 && env.app_versao === '0.7.0', `corpo v1 com uuid (${env.id})`);
   const eq0 = env.lancamento.equipamentos[0];
   ok(env.lancamento.modalidade === 'ppu' && eq0.tag === 'HE 41A-01A' && eq0.servico === 'desobstrucao' && eq0.prod.desob === 3 && eq0.prod.mapeados === 300, 'equipamento com TAG, serviço e produção numérica');
   const pf = env.lancamento.pessoas.find((x) => x.nome === 'JATISTA DOIS');

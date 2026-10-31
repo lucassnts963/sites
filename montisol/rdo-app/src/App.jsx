@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from './estado.jsx';
 import { Mapa } from './componentes/Mapa.jsx';
+import { OfertaArquivos } from './componentes/OfertaArquivos.jsx';
+import { AvisoArmazenamento } from './componentes/AvisoArmazenamento.jsx';
 import { baixar, copiar, enviarWhats } from './lib/arquivos.js';
 import { legendaMapa, mapaHtml, mapaPng } from './lib/mapaImagem.js';
 import { useEnvio } from './componentes/useEnvio.js';
 import { MARCA, MOD_TXT } from './lib/constantes.js';
 import { contar, exportSvg } from './lib/mapa.js';
 import { gravarMapa, importarPassagem, lerMapa, montarPassagem } from './lib/passagem.js';
-import { confirmacaoPassagem, desobNoTurno, lerPassagem } from './lib/turnos.js';
+import { codigoPassagem, confirmacaoPassagem, desobNoTurno, lerPassagem } from './lib/turnos.js';
 import { dataBR, slug } from './lib/texto.js';
 import { Config } from './telas/Config.jsx';
 import { Historico } from './telas/Historico.jsx';
@@ -44,9 +46,9 @@ function MensagemDialog() {
         {erros.length > 0 && <div className="card erro"><b>Falta completar:</b><ul>{erros.map((e) => <li key={e}>{e}</li>)}</ul></div>}
         <pre className="msg">{mensagem.msg}</pre>
         <div className="linha">
-          <button type="button" className="btn" onClick={async () => { await copiar(mensagem.msg); toast('Mensagem copiada'); }}>📋 Copiar</button>
+          <button type="button" className="btn" onClick={async () => { toast(await copiar(mensagem.msg) ? 'Mensagem copiada' : 'Não deu para copiar aqui: selecione o texto acima e copie'); }}>📋 Copiar</button>
           <button type="button" className="btn wa" disabled={erros.length > 0}
-            onClick={() => { salvarRegistro({ enviadoEm: new Date().toISOString() }); toast(enviarWhats(mensagem.msg)); }}>📲 WhatsApp</button>
+            onClick={async () => { salvarRegistro({ enviadoEm: new Date().toISOString() }); const r = await enviarWhats(mensagem.msg); toast(r.aviso); }}>📲 WhatsApp</button>
           <span className="sp" />
           <button type="button" className="btn" onClick={() => setMensagem(null)}>Fechar</button>
         </div>
@@ -72,12 +74,12 @@ function EditorMapa() {
   const enviarImagem = (est) => enviar(chave('png', est), async () => {
     const { c, meta, svg } = gerar(est);
     const png = await mapaPng(svg, mapa.sheet, meta, c, dados.CAT.status);
-    return { files: [new File([png], nome + '.png', { type: 'image/png' })], text: legendaMapa(meta, c) };
+    return { titulo: 'Imagem do mapa', files: [new File([png], nome + '.png', { type: 'image/png' })], text: legendaMapa(meta, c) };
   });
   const enviarArquivo = (est) => enviar(chave('html', est), async () => {
     const { c, meta, svg } = gerar(est);
     const p = montarPassagem(eq.tag, eq.desenho, D.encarregado);
-    return { files: [new File([mapaHtml(svg, meta, c, p)], nome + '.html', { type: 'text/html' })], text: legendaMapa(meta, c) };
+    return { titulo: 'Mapa (documento com o SVG)', files: [new File([mapaHtml(svg, meta, c, p)], nome + '.html', { type: 'text/html' })], text: legendaMapa(meta, c), codigo: legendaMapa(meta, c) + '\n\n' + codigoPassagem(p) };
   });
   const baixarSvg = (est) => baixar(new File([gerar(est).svg], nome + '.svg', { type: 'image/svg+xml' }));
   return (
@@ -115,6 +117,7 @@ export function App() {
         {dados && (dados.fonte === 'exemplo' || dados.fonte === 'vazio') && <span className="aviso-dados">dados de exemplo</span>}
       </header>
 
+      <AvisoArmazenamento />
       <main>
         {!D ? <div className="abertura"><div><img src={MARCA + 'logo-vertical-colorido.png'} alt="Montisol" /><p>RDO de campo · carregando…</p></div></div>
           : tela === 'lancar' ? <Lancar />
@@ -133,6 +136,7 @@ export function App() {
 
       {D && <EditorMapa />}
       <MensagemDialog />
+      <OfertaArquivos />
       <Toast />
     </>
   );

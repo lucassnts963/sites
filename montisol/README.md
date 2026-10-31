@@ -161,6 +161,31 @@ os **dados da manutenção** e o **histórico turno a turno**. O formato foi fei
 
 Recomendação: **Google Planilha + Apps Script** (menor custo de manutenção e a planilha vira o histórico da medição).
 
+## Mini app interno do BeaconOS (`rdo-beacon/`)
+
+`npm run build:beacon` gera **`montisol/rdo-beacon/`**, uma pasta autossuficiente para rodar como mini app do BeaconOS
+(isolado, origem "null"). O app é o mesmo: o que muda por alvo fica em `rdo-app/src/plataforma/` (`pages.js` × `beacon.js`),
+escolhido no build pelo alias `#plataforma`. **O GitHub Pages (`rdo/`) continua igual e publicado em paralelo.**
+
+- **Arquivos:** `index.html`, `app.js` (script clássico, num arquivo só), `app.css` (fontes Exo 2 e Montserrat embutidas) e `marca/`
+  (logos e ícones). Caminhos relativos, sem service worker e sem manifest. Script de módulo, `crossorigin` e fontes por URL
+  são pedidos em modo CORS e falhariam em origem "null"; por isso o script é clássico e as fontes vão dentro do CSS.
+- **Dados embutidos:** catálogo de desenhos, os 4 SVG, a lista de TAGs e o **efetivo de exemplo** vão dentro do `app.js` (sem `fetch`).
+  O efetivo real continua importado em Ajustes (`efetivo.json` do planejamento) e nunca entra no build nem no repositório.
+- **Armazenamento:** sem IndexedDB. A fila de envio fica no `localStorage`; valores grandes são gravados comprimidos (LZ, marcador `\u0001z`).
+  Fotos: só momento e legenda (as imagens não ficam no aparelho; vão pelo WhatsApp). Aviso na tela perto de ~4 MB dos ~5 MB do navegador,
+  e "Sem espaço no aparelho para salvar." quando o navegador recusa. Se o `localStorage` estiver bloqueado, o app usa a memória e mostra
+  "Armazenamento do aparelho bloqueado" (os dados só duram enquanto a tela estiver aberta).
+- **Envio para a base:** igual ao Pages (contrato v1, fila com id fixo, 409 já aprovado, 401/403 chave recusada); `app_versao` termina em `-beacon`.
+  O pedido sai com `Origin: null` (o n8n aceita).
+- **Quando o ambiente bloqueia** compartilhar, baixar, copiar ou abrir janela:
+  - WhatsApp: se a janela não abrir, copia a mensagem e avisa; se nem copiar, mostra o texto para copiar à mão.
+  - Arquivos (passagem, mapa, backup): abre uma janela com as opções (baixar, copiar o conteúdo, copiar a passagem como texto).
+  - **Passagem de turno como texto:** `📋 Copiar passagem` gera uma mensagem com o código `RDOP1:…` (JSON comprimido, poucos KB);
+    quem recebe usa `📋 Colar passagem`. Funciona também no Pages.
+- **Testes:** `npm run test:e2e:beacon` (gera a pasta e roda no Chromium: sandbox com CSP `sandbox allow-scripts allow-forms allow-modals allow-popups`,
+  sem armazenamento e com o `localStorage` do BeaconOS simulado com cota de 5 MB, página comum sem IndexedDB, 360 px, fila e reenvio, nenhum pedido fora da pasta).
+
 ## Mexer no RDO
 
 O código fica em `rdo-app/`; o GitHub Pages continua servindo arquivos estáticos (sem Actions), por isso o build é commitado em `rdo/`.

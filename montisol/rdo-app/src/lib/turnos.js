@@ -12,6 +12,7 @@
      mapats:<TAG>:<desenho>   { manut, ts: { tubo: [quando, lançamento, encarregado] } }
      manut:<TAG>              [ Manutenção ]   { id, tag, desenho, inicio, total, obstruidos, atualizadoEm, encerradaEm?, aliases? }
      turnos:<TAG>             [ Turno ]        { id, manut, lid, data, turno, encarregado, desobTurno, acum, pend, tamp, furado, total, obstruidos, salvoEm } */
+import LZString from 'lz-string';
 import { contar } from './mapa.js';
 import { normTag, uid } from './texto.js';
 
@@ -112,11 +113,19 @@ export function mesclarTurnos(a, b) {
 export const TIPO_PASSAGEM = 'montisol-rdo-passagem';
 /** JSON da passagem embutido no .html do mapa (o mesmo arquivo serve para ver e para importar). */
 export const scriptPassagem = (p) => `<script type="application/json" id="rdo-passagem">${JSON.stringify(p).replace(/</g, '\\u003c')}</script>`;
+/** Passagem como texto (para copiar e colar no WhatsApp quando arquivo não dá, como no mini app do BeaconOS):
+    "RDOP1:" + JSON comprimido (LZ, base64). Uma passagem com o espelho inteiro marcado cabe em poucos KB. */
+export const PREFIXO_CODIGO = 'RDOP1:';
+export const codigoPassagem = (p) => PREFIXO_CODIGO + LZString.compressToBase64(JSON.stringify(p));
+
+/** Lê a passagem de um .html (JSON embutido), de um JSON ou de um texto com o código RDOP1: (pode vir no meio de uma mensagem). */
 export function lerPassagem(texto) {
   const t = String(texto || '').trim();
   let o = null;
   const m = /<script type="application\/json" id="rdo-passagem">([\s\S]*?)<\/script>/.exec(t);
+  const c = /RDOP1:([A-Za-z0-9+/=]+)/.exec(t.replace(/\s+/g, ''));
   if (m) o = JSON.parse(m[1]);
+  else if (c) { const json = LZString.decompressFromBase64(c[1]); if (!json) throw new Error('código da passagem incompleto (copie a mensagem inteira)'); o = JSON.parse(json); }
   else if (t.startsWith('{')) o = JSON.parse(t);
   return o && o.tipo === TIPO_PASSAGEM ? o : null;
 }

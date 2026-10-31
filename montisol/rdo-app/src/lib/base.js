@@ -5,7 +5,7 @@
    - O status de cada lançamento fica em localStorage (base:status): fila | enviado | erro | aprovado.
    - Reenvio (mesmo id) enquanto está pendente ou rejeitado: o n8n atualiza e responde {"ok":true,"atualizado":true} = correção recebida.
    - Reenvio depois de aprovado/registrado: 409 {"ja_aprovado":true}. É definitivo: sai da fila e não tenta de novo. */
-import { tx } from './idb.js';
+import { fila as filaDaPlataforma } from '#plataforma';
 import { store } from './store.js';
 
 export const URL_BASE = 'https://n8n.elucas.dev/webhook/montisol-rdo';
@@ -29,9 +29,16 @@ function marcar(lid, dados) {
 
 // ------------------------------------------------------------------ fila
 
-export const itensDaFila = () => tx('fila', 'readonly', (s) => s.getAll()).catch(() => []);
-const guardarNaFila = (item) => tx('fila', 'readwrite', (s) => { s.put(item); });
-const tirarDaFila = (id) => tx('fila', 'readwrite', (s) => { s.delete(id); });
+// IndexedDB no Pages; no BeaconOS (sem IndexedDB) a fila fica no localStorage, comprimida pelo store.
+const filaNoStore = {
+  listar: async () => store.get('fila', []),
+  guardar: async (item) => { if (!store.set('fila', [...store.get('fila', []).filter((x) => x.id !== item.id), item])) throw new Error('sem espaço no aparelho para a fila'); },
+  tirar: async (id) => { store.set('fila', store.get('fila', []).filter((x) => x.id !== id)); },
+};
+const F = filaDaPlataforma || filaNoStore;
+export const itensDaFila = () => F.listar().catch(() => []);
+const guardarNaFila = (item) => F.guardar(item);
+const tirarDaFila = (id) => F.tirar(id);
 
 /** Põe (ou troca, pelo id) o lançamento na fila. */
 export async function enfileirar(corpo, lid) {

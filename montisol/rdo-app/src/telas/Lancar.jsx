@@ -13,6 +13,7 @@ import { arquivosDasFotos, rodapeDe, textoDasFotos } from '../componentes/Fotos.
 import { useEnvio } from '../componentes/useEnvio.js';
 import { slug } from '../lib/texto.js';
 import { StatusBase } from '../componentes/StatusBase.jsx';
+import { SUPORTA_IMAGENS } from '../lib/fotos.js';
 
 /** Grupos de fotos do lançamento: um por equipamento (PPU) e o do lançamento. */
 const gruposDeFotos = (D) => [
@@ -113,14 +114,15 @@ function BarraAcoes({ erros }) {
   const whats = () => {
     if (erros.length) { setMensagem({ msg: mensagem(D), erros }); return; }
     salvarRegistro({ enviadoEm: new Date().toISOString() });
-    toast(enviarWhats(mensagem(D)));
+    const m = mensagem(D);
+    enviarWhats(m).then((r) => { toast(r.aviso); if (r.mostrar) setMensagem({ msg: m, erros: [] }); });
   };
   return (
     <div className="acoes">
       <div className="fila">
         <button type="button" className="btn" onClick={() => setMensagem({ msg: mensagem(D), erros })}>👁️ Ver</button>
         <button type="button" className="btn" onClick={() => { if (salvarRegistro()) toast('Salvo no histórico deste aparelho'); }}>💾 Salvar</button>
-        {nFotos > 0 && <button type="button" className="btn estreito" onClick={enviarFotos} title="Envia as fotos com a legenda gravada">📷 {nFotos}</button>}
+        {nFotos > 0 && SUPORTA_IMAGENS && <button type="button" className="btn estreito" onClick={enviarFotos} title="Envia as fotos com a legenda gravada">📷 {nFotos}</button>}
       </div>
       <div className="fila envio">
         <button type="button" className="btn wa" onClick={whats}>📲 WhatsApp{erros.length ? <span className="badge" title="itens a completar">{erros.length}</span> : null}</button>

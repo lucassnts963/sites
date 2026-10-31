@@ -229,3 +229,23 @@ table.turnos tr.este td { background: #e8ecfe; }
 .modo-aviso .cor { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(0,0,0,.3); vertical-align: middle; }
 .mapa-main.modo-move { cursor: grab; }
 .mapa-main.modo-mark { cursor: crosshair; }
+
+/* mini app do BeaconOS: avisos de armazenamento, janela de opções de envio, colar passagem */
+.aviso-armazenamento { padding: 10px 14px; font-size: 14px; font-weight: 600; }
+.aviso-armazenamento.bloqueado { background: var(--falta-fundo); color: var(--falta); border-bottom: 2px solid var(--falta); }
+.aviso-armazenamento.cheio { background: #fff1d6; color: #7a4b00; border-bottom: 2px solid #e0a000; }
+dialog.oferta .linha .btn { flex: 1 1 auto; }
+textarea.copiar-manual { min-height: 140px; font: 12px/1.4 ui-monospace, Consolas, monospace; margin-top: 8px; }
+.colar-passagem { margin-top: 8px; }
+.colar-passagem textarea { min-height: 110px; font: 12px/1.4 ui-monospace, Consolas, monospace; }
+/* 360 px: nada pode passar da largura da tela */
+.mapa-row, .linha { min-width: 0; }
+.btn { max-width: 100%; }
+@media (max-width: 380px) {
+  .chip-topo { display: none; } /* em 360 px o chip encostava no logo; modalidade e data estão no lançamento */
+}
+@media (max-width: 420px) {
+  table.turnos { table-layout: fixed; font-size: 12px; }
+  table.turnos th, table.turnos td { padding: 6px 3px; white-space: normal; overflow-wrap: anywhere; }
+  table.turnos th:nth-child(3), table.turnos td:nth-child(3) { width: 26%; }
+}

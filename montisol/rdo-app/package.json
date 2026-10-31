@@ -1,15 +1,18 @@
 {
   "name": "montisol-rdo",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "test": "vitest run",
-    "test:e2e": "vite build && node test/e2e.mjs"
+    "test:e2e": "vite build && node test/e2e.mjs",
+    "build:beacon": "vite build --mode beacon",
+    "test:e2e:beacon": "vite build --mode beacon && node test/e2e-beacon.mjs"
   },
   "dependencies": {
+    "lz-string": "^1.5.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },
