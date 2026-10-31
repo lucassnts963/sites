@@ -1,7 +1,8 @@
 /* Histórico local: ver, editar, duplicar para hoje, excluir, backup e restauração. */
 import { useApp } from '../estado.jsx';
 import { Sp } from '../componentes/campos.jsx';
-import { abrirArquivo, compartilharArquivo } from '../lib/arquivos.js';
+import { abrirArquivo } from '../lib/arquivos.js';
+import { useEnvio } from '../componentes/useEnvio.js';
 import { MOD_TXT, VERSAO } from '../lib/constantes.js';
 import { mensagem } from '../lib/mensagens.js';
 import { duplicarParaHoje } from '../lib/rascunho.js';
@@ -34,8 +35,11 @@ export function Historico({ irPara }) {
     if (!confirm('Excluir este registro do aparelho?')) return;
     store.set('registros', regs.filter((x) => x.id !== r.id)); removerTurnosDoLancamento(r); atualizarRegistros(); limparFotos();
   };
-  const exportar = async () => toast(await compartilharArquivo(`rdo-backup-${hoje()}.json`,
-    JSON.stringify({ versao: VERSAO, exportadoEm: new Date().toISOString(), registros: regs }, null, 1), 'application/json'));
+  const enviar = useEnvio();
+  const exportar = () => enviar(`backup|${regs.length}|${Date.now()}`, async () => ({
+    titulo: 'Backup do histórico',
+    files: [new File([JSON.stringify({ versao: VERSAO, exportadoEm: new Date().toISOString(), registros: regs }, null, 1)], `rdo-backup-${hoje()}.json`, { type: 'application/json' })],
+  }));
   const importar = async () => {
     const arq = await abrirArquivo('.json,application/json');
     if (!arq) return;

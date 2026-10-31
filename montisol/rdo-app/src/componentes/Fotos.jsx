@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useApp } from '../estado.jsx';
 import { abrirArquivo } from '../lib/arquivos.js';
-import { apagarFoto, carimbar, guardarFoto, lerFoto, MOMENTOS } from '../lib/fotos.js';
+import { apagarFoto, carimbar, fotoSemImagem, guardarFoto, lerFoto, MOMENTOS, SUPORTA_IMAGENS } from '../lib/fotos.js';
 import { dataBR, getPath, setPath, slug } from '../lib/texto.js';
 import { useEnvio } from './useEnvio.js';
 
@@ -25,13 +25,14 @@ export async function arquivosDasFotos(anexos, rodape, prefixo) {
 }
 export const textoDasFotos = (titulo, anexos) => [titulo, ...anexos.map((a, i) => `${i + 1}. ${legendaCompleta(a) || 'sem legenda'}`)].join('\n');
 
-function Miniatura({ id }) {
+function Miniatura({ id, semImagem }) {
   const [url, setUrl] = useState('');
   useEffect(() => {
     let u = '', vivo = true;
     lerFoto(id).then((b) => { if (b && vivo) { u = URL.createObjectURL(b); setUrl(u); } });
     return () => { vivo = false; if (u) URL.revokeObjectURL(u); };
   }, [id]);
+  if (semImagem) return <div className="sem-img">📷 só legenda</div>;
   return url ? <img src={url} alt="" /> : <div className="sem-img">foto não encontrada</div>;
 }
 
@@ -42,6 +43,11 @@ export function Fotos({ caminho, tag }) {
   const rodape = rodapeDe(D, tag);
   const prefixo = `foto-${slug(tag || D.encarregado || 'rdo')}-${D.data}`;
 
+  // sem armazenamento de imagens (mini app do BeaconOS): registra só momento e legenda
+  const registrarSemImagem = () => {
+    mudar((d) => { const l = getPath(d, caminho) || []; l.push(fotoSemImagem()); setPath(d, caminho, l); });
+    toast('Foto registrada: marque o momento e escreva a legenda');
+  };
   const adicionar = async () => {
     const r = await abrirArquivo('image/*', { binario: true, varios: true });
     if (!r) return;
@@ -71,7 +77,7 @@ export function Fotos({ caminho, tag }) {
     <div className="fotos">
       {anexos.map((a, j) => (
         <div className="foto" key={a.id}>
-          <Miniatura id={a.id} />
+          <Miniatura id={a.id} semImagem={!SUPORTA_IMAGENS || a.semImagem} />
           <div className="foto-campos">
             <div className="seg mini">
               {MOMENTOS.map(([val, rot]) => (
@@ -82,7 +88,7 @@ export function Fotos({ caminho, tag }) {
             <input placeholder="Legenda (ex.: colmeia 2 antes da lavagem)" value={a.legenda}
               onChange={(e) => { const val = e.target.value; mudar((d) => { getPath(d, caminho)[j].legenda = val; }); }} />
             <div className="linha">
-              <button type="button" className="btn min wa" onClick={() => enviarUma(a, j)}>📲 Enviar</button>
+              {SUPORTA_IMAGENS && !a.semImagem && <button type="button" className="btn min wa" onClick={() => enviarUma(a, j)}>📲 Enviar</button>}
               <span className="sp" />
               <button type="button" className="btn min perigo" onClick={() => remover(j)} aria-label="remover foto">🗑</button>
             </div>
@@ -90,10 +96,14 @@ export function Fotos({ caminho, tag }) {
         </div>
       ))}
       <div className="linha">
-        <button type="button" className="btn" onClick={adicionar}>📷 Anexar fotos</button>
-        {anexos.length > 1 && <button type="button" className="btn wa" onClick={enviarTodas}>📲 Enviar as {anexos.length}</button>}
+        {SUPORTA_IMAGENS
+          ? <button type="button" className="btn" onClick={adicionar}>📷 Anexar fotos</button>
+          : <button type="button" className="btn" onClick={registrarSemImagem}>📷 Registrar foto (legenda)</button>}
+        {SUPORTA_IMAGENS && anexos.length > 1 && <button type="button" className="btn wa" onClick={enviarTodas}>📲 Enviar as {anexos.length}</button>}
       </div>
-      {anexos.length > 0 && <p className="dim pequeno">A legenda é gravada na foto e vai junto no WhatsApp. As fotos ficam neste aparelho.</p>}
+      {SUPORTA_IMAGENS
+        ? anexos.length > 0 && <p className="dim pequeno">A legenda é gravada na foto e vai junto no WhatsApp. As fotos ficam neste aparelho.</p>
+        : <p className="dim pequeno">Aqui o aparelho não guarda imagens: mande as fotos pelo WhatsApp e registre o momento e a legenda de cada uma. Elas vão na mensagem e para a base.</p>}
     </div>
   );
 }

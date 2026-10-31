@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react';
 import { useApp } from '../estado.jsx';
 import { AdicionarPessoa, TagOrigem } from '../componentes/AdicionarPessoa.jsx';
 import { Area, Campo, Numero, Seg, Sp } from '../componentes/campos.jsx';
-import { abrirArquivo } from '../lib/arquivos.js';
-import { DESENHOS, MARCA } from '../lib/constantes.js';
+import { abrirArquivo, copiar } from '../lib/arquivos.js';
+import { MARCA } from '../lib/constantes.js';
+import { lerDesenho } from '#plataforma';
 import { SERVICOS } from '../lib/contrato.js';
 import { contar, exportSvg, parseSheet } from '../lib/mapa.js';
 import { completarPelaTag, copiarApontamento, novoEq, paradaVazia } from '../lib/rascunho.js';
 import { editarManut, garantirManut, gravarMapa, importarPassagem, lerMapa, manutDe, montarPassagem, novaManutDaTag, turnosDaTag } from '../lib/passagem.js';
-import { confirmacaoPassagem, lerPassagem, producao } from '../lib/turnos.js';
+import { codigoPassagem, confirmacaoPassagem, lerPassagem, producao } from '../lib/turnos.js';
 import { mapaHtml } from '../lib/mapaImagem.js';
 import { TabelaTurnos } from '../componentes/TabelaTurnos.jsx';
 import { useEnvio } from '../componentes/useEnvio.js';
@@ -29,9 +30,7 @@ async function folhaDe(eq, CAT) {
   if (folhas.has(eq.desenho)) return folhas.get(eq.desenho);
   const d = CAT.desenhos.find((x) => x.id === eq.desenho);
   if (!d) return null;
-  const r = await fetch(DESENHOS + d.arquivo);
-  if (!r.ok) throw new Error('Desenho não encontrado no site: ' + d.arquivo);
-  const { sheet } = parseSheet(await r.text());
+  const { sheet } = parseSheet(await lerDesenho(d.arquivo));
   folhas.set(eq.desenho, sheet);
   return sheet;
 }
@@ -68,7 +67,7 @@ function Parada({ i, j, p }) {
 /** Controle de produção: dados da manutenção (uma vez por TAG), números do turno vindos do mapa, histórico turno a turno
     e passagem de turno para o próximo encarregado. */
 function Producao({ eq, i, c, folha }) {
-  const { dados, D, mudar, toast, tocar, versao } = useApp();
+  const { dados, D, mudar, toast, tocar, versao, setMensagem } = useApp();
   const enviar = useEnvio();
   const manut = manutDe(eq.tag);
   const mapa = lerMapa(eq.tag, eq.desenho);
@@ -93,9 +92,11 @@ function Producao({ eq, i, c, folha }) {
     novaManutDaTag(eq.tag, eq.desenho, { total: eq.prod.total });
     tocar(); toast('Nova manutenção iniciada');
   };
+  const resumoPassagem = (rodape) => [`🔁 *Passagem de turno – ${eq.tag}* – ${dataBR(D.data)} – ${D.turno || ''}`, `👷 ${D.encarregado}`,
+    `🟢 Desobstruídos no turno: ${p.desob || 0} · Acumulado: ${p.acum || 0}${p.mapeados ? ' de ' + p.mapeados : ''}`, `🔴 Pendentes: ${p.pend || 0} · ⚫ Tamponados: ${p.tamp || 0}`, rodape].join('\n');
+  const novaPassagem = () => { garantirManut(eq.tag, eq.desenho, { total: eq.prod.total, obstruidos: eq.prod.mapeados }); return montarPassagem(eq.tag, eq.desenho, D.encarregado); };
   const passar = () => enviar(`passagem|${eq.tag}|${versao}|${JSON.stringify(mapa.ts).length}`, async () => {
-    garantirManut(eq.tag, eq.desenho, { total: eq.prod.total, obstruidos: eq.prod.mapeados });
-    const pass = montarPassagem(eq.tag, eq.desenho, D.encarregado);
+    const pass = novaPassagem();
     let svg = '', cc = null;
     const sheet = eq.desenho ? await folha().catch(() => null) : null;
     if (sheet) {
@@ -104,23 +105,33 @@ function Producao({ eq, i, c, folha }) {
     }
     const meta = { trocador: eq.tag, data: D.data, turno: D.turno, resp: D.encarregado };
     const nome = `passagem-${slug(eq.tag)}-${D.data}-${slug(D.turno || 'turno')}.html`;
-    const texto = [`🔁 *Passagem de turno – ${eq.tag}* – ${dataBR(D.data)} – ${D.turno || ''}`, `👷 ${D.encarregado}`,
-      `🟢 Desobstruídos no turno: ${p.desob || 0} · Acumulado: ${p.acum || 0}${p.mapeados ? ' de ' + p.mapeados : ''}`, `🔴 Pendentes: ${p.pend || 0} · ⚫ Tamponados: ${p.tamp || 0}`,
-      'Próximo encarregado: abra o arquivo no RDO › 📥 Receber passagem.'].join('\n');
-    return { files: [new File([mapaHtml(svg, meta, cc, pass)], nome, { type: 'text/html' })], text: texto };
+    const texto = resumoPassagem('Próximo encarregado: abra o arquivo no RDO › 📥 Receber passagem.');
+    return { titulo: 'Passagem de turno', files: [new File([mapaHtml(svg, meta, cc, pass)], nome, { type: 'text/html' })], text: texto,
+      codigo: resumoPassagem('Próximo encarregado: copie esta mensagem inteira e, no RDO, toque em 📥 Receber passagem › Colar.') + '\n\n' + codigoPassagem(pass) };
   });
+  /** Passagem como texto: para mandar no WhatsApp quando arquivo não dá (ex.: mini app do BeaconOS). */
+  const copiarPassagem = async () => {
+    const msg = resumoPassagem('Próximo encarregado: copie esta mensagem inteira e, no RDO, toque em 📥 Receber passagem › Colar.') + '\n\n' + codigoPassagem(novaPassagem());
+    if (await copiar(msg)) toast('Passagem copiada: cole no WhatsApp do próximo encarregado');
+    else setMensagem({ msg, erros: [] });
+  };
+  const [colando, setColando] = useState(false);
+  const [colado, setColado] = useState('');
   const receber = async () => {
     const arq = await abrirArquivo('.html,.json,text/html,application/json');
-    if (!arq) return;
+    if (arq) juntar(arq.texto, 'o arquivo');
+  };
+  const juntar = (texto, origem) => {
     try {
-      const pass = lerPassagem(arq.texto);
-      if (!pass) throw new Error('o arquivo não é uma passagem de turno do RDO');
+      const pass = lerPassagem(texto);
+      if (!pass) throw new Error(`${origem} não é uma passagem de turno do RDO`);
       if (eq.tag && normTag(pass.tag) !== normTag(eq.tag) && !confirm(`A passagem é da TAG ${pass.tag}, não da ${eq.tag}. Importar mesmo assim (para a ${pass.tag})?`)) return;
       if (!confirm(confirmacaoPassagem(pass))) return;
       const r = importarPassagem(pass);
       if (!eq.tag) mudar((d) => { d.equipamentos[i].tag = pass.tag; d.equipamentos[i].desenho = pass.desenho; });
       tocar();
       toast(`Passagem de ${r.de || 'outro aparelho'} (${r.tag}): ${r.tubos} tubo(s) atualizado(s), ${r.turnosNovos} turno(s) novo(s)${r.mapaIgnorado ? ' · mapa de manutenção encerrada ignorado' : ''}`);
+      setColando(false); setColado('');
     } catch (e) { alert('Não foi possível receber: ' + e.message); }
   };
   const pct = p.mapeados && +p.mapeados ? Math.round((+p.acum / +p.mapeados) * 100) : null;
@@ -171,9 +182,17 @@ function Producao({ eq, i, c, folha }) {
       </details>}
       {eq.tag && <div className="linha">
         <button type="button" className="btn wa" onClick={passar}>📤 Passar turno</button>
+        <button type="button" className="btn" onClick={copiarPassagem} title="Copia a passagem como texto, para colar no WhatsApp">📋 Copiar passagem</button>
         <button type="button" className="btn" onClick={receber}>📥 Receber passagem</button>
+        <button type="button" className="btn" onClick={() => setColando(!colando)} title="Cole o texto da passagem recebido no WhatsApp">📋 Colar passagem</button>
         <Sp />
         {manut && <button type="button" className="btn min perigo" onClick={novaManut} title="Encerra a manutenção e começa outra">Nova manutenção</button>}
+      </div>}
+      {eq.tag && colando && <div className="colar-passagem">
+        <label>Cole aqui a mensagem da passagem (com o código RDOP1:…)</label>
+        <textarea value={colado} onChange={(e) => setColado(e.target.value)} placeholder="🔁 Passagem de turno … RDOP1:…" />
+        <div className="linha"><button type="button" className="btn pri" onClick={() => juntar(colado, 'o texto colado')} disabled={!colado.trim()}>Juntar passagem</button>
+          <button type="button" className="btn min" onClick={() => { setColando(false); setColado(''); }}>Cancelar</button></div>
       </div>}
     </>
   );

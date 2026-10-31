@@ -1,12 +1,14 @@
 /* Envio de arquivos pelo menu de compartilhar do celular.
    Preparar as fotos (carimbar a legenda) leva um instante; se o navegador recusar por ter passado o tempo do toque,
-   os arquivos ficam prontos e o próximo toque envia na hora. Sem suporte (computador): baixa os arquivos e copia o texto. */
+   os arquivos ficam prontos e o próximo toque envia na hora. Sem suporte: no Pages (computador) baixa os arquivos e copia o texto;
+   no mini app do BeaconOS (isolado: compartilhar e baixar podem ser bloqueados) abre a janela com as opções (baixar, copiar o código, copiar o texto). */
 import { useRef } from 'react';
 import { useApp } from '../estado.jsx';
 import { baixar, compartilharArquivos, copiar } from '../lib/arquivos.js';
+import { ALVO } from '../lib/constantes.js';
 
 export function useEnvio() {
-  const { toast } = useApp();
+  const { toast, setOferta } = useApp();
   const pronto = useRef(null);
   return async (chave, preparar) => {
     try {
@@ -16,6 +18,7 @@ export function useEnvio() {
       if (r === 'sem-gesto') { pronto.current = p; toast('Pronto: toque de novo para enviar'); return; }
       pronto.current = null;
       if (r === 'enviado') toast('Enviado');
+      else if (r === 'sem-suporte' && ALVO === 'beacon') setOferta({ files: p.files, text: p.text, codigo: p.codigo, titulo: p.titulo });
       else if (r === 'sem-suporte') {
         p.files.forEach(baixar);
         if (p.text) await copiar(p.text);

@@ -52,15 +52,29 @@ export function abrirArquivo(accept, { binario = false, varios = false } = {}) {
   });
 }
 
+/** Copia o texto. Devolve false se o ambiente não deixar (ex.: mini app isolado): aí a tela mostra o texto para copiar à mão. */
 export async function copiar(txt) {
-  try { await navigator.clipboard.writeText(txt); }
-  catch (_) { const t = document.createElement('textarea'); t.value = txt; document.body.appendChild(t); t.select(); document.execCommand('copy'); t.remove(); }
+  try { await navigator.clipboard.writeText(txt); return true; }
+  catch (_) {
+    try {
+      const t = document.createElement('textarea'); t.value = txt; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+      document.body.appendChild(t); t.select();
+      const ok = document.execCommand('copy'); t.remove();
+      return !!ok;
+    } catch (_e) { return false; }
+  }
 }
 
-/** Abre o WhatsApp com a mensagem. Mensagens longas estouram o link: copia e abre o WhatsApp vazio. Devolve o aviso, se houver. */
-export function enviarWhats(msg) {
+/** Abre o WhatsApp com a mensagem. Mensagens longas estouram o link: copia e abre o WhatsApp vazio.
+    Se o ambiente bloquear a janela (mini app isolado), copia o texto e avisa; se nem copiar der, pede para mostrar o texto.
+    Devolve { aviso, mostrar }. */
+export async function enviarWhats(msg) {
   const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
-  if (url.length > 6000) { copiar(msg); window.open('https://wa.me/', '_blank'); return 'Mensagem longa copiada: cole no WhatsApp'; }
-  window.open(url, '_blank');
-  return '';
+  const longa = url.length > 6000;
+  let janela = null;
+  try { janela = window.open(longa ? 'https://wa.me/' : url, '_blank'); } catch (_) { janela = null; }
+  if (janela && !longa) return { aviso: '', mostrar: false };
+  const copiou = await copiar(msg);
+  if (!copiou) return { aviso: 'Não deu para abrir o WhatsApp nem copiar aqui: copie o texto da janela e cole no WhatsApp', mostrar: true };
+  return { aviso: janela ? 'Mensagem longa copiada: cole no WhatsApp' : 'O WhatsApp não abriu aqui: a mensagem foi copiada. Abra o WhatsApp e cole.', mostrar: false };
 }

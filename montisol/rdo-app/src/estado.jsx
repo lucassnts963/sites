@@ -5,7 +5,7 @@ import { carregarDados } from './lib/dados.js';
 import { fotosReferenciadas, limparFotosOrfas } from './lib/fotos.js';
 import { registrarTurnos } from './lib/passagem.js';
 import { chaveDeEnvio, enfileirar, processarFila, statusDe } from './lib/base.js';
-import { VERSAO } from './lib/constantes.js';
+import { ALVO, VERSAO } from './lib/constantes.js';
 import { montarEnvio, novoUuid } from './lib/contrato.js';
 import { garantirConteudo, migrar, novoDraft } from './lib/rascunho.js';
 import { gravarRegistro, ordenar, quandoFaltarEspaco, registros, store } from './lib/store.js';
@@ -23,6 +23,7 @@ export function AppProvider({ children }) {
   const [aviso, setAviso] = useState({ texto: '', n: 0 });
   const [mensagem, setMensagem] = useState(null); // { msg, erros }
   const [mapa, setMapa] = useState(null); // { i, sheet, estado }
+  const [oferta, setOferta] = useState(null); // { files, text, codigo, titulo }: opções quando compartilhar não dá
 
   const toast = useCallback((texto) => { if (texto) setAviso((a) => ({ texto, n: a.n + 1 })); }, []);
   useEffect(() => quandoFaltarEspaco(() => toast('Sem espaço no aparelho para salvar.')), [toast]);
@@ -75,7 +76,7 @@ export function AppProvider({ children }) {
       if (!registro.envioId) store.set('registros', ordenar(registros().map((x) => (x.id === L.id ? L : x))));
     }
     atualizarRegistros();
-    const corpo = montarEnvio(L, (dadosRef.current && dadosRef.current.EF) || { colaboradores: [], frentes: {} }, { id: L.envioId, appVersao: VERSAO });
+    const corpo = montarEnvio(L, (dadosRef.current && dadosRef.current.EF) || { colaboradores: [], frentes: {} }, { id: L.envioId, appVersao: VERSAO + (ALVO === 'beacon' ? '-beacon' : '') });
     await enfileirar(corpo, L.id);
     tocar();
     await processarFila(tocar);
@@ -103,7 +104,7 @@ export function AppProvider({ children }) {
 
   const valor = useMemo(() => ({
     dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu, limparFotos, versao, tocar, enviarParaBase,
-    aviso, toast, mensagem, setMensagem, mapa, setMapa,
-  }), [dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu, limparFotos, versao, tocar, enviarParaBase, aviso, toast, mensagem, mapa]);
+    aviso, toast, mensagem, setMensagem, mapa, setMapa, oferta, setOferta,
+  }), [dados, EF, D, mudar, definirD, recarregarDados, regs, atualizarRegistros, salvarRegistro, eu, setEu, limparFotos, versao, tocar, enviarParaBase, aviso, toast, mensagem, mapa, oferta]);
   return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
 }
